@@ -963,10 +963,10 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             np.savetxt(intensities_morgane_name, c, delimiter="    ", newline='\r\n')
             print("\n", len(c), "Intensities exported as", intensities_morgane_name)
     
-            exporter = pg.exporters.ImageExporter(self.imv.imageItem)
-            png_name = another_name + 'Image_intensities'+ str(len(b))+"(" + str(self.n)+")" + '.png'
-            exporter.export(png_name)
-            print( "\n Picture exported as", png_name)
+#            exporter = pg.exporters.ImageExporter(self.imv.imageItem)
+#            png_name = another_name + 'Image_intensities'+ str(len(b))+"(" + str(self.n)+")" + '.png'
+#            exporter.export(png_name)
+#            print( "\n Picture exported as", png_name)
             
             self.n += 1
 
