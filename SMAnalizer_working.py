@@ -393,13 +393,28 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 "QPushButton { background-color: ; }")
         self.meanEndEdit.setStyleSheet(" background-color: ; ")
 
-        z = self.roi.getArrayRegion(self.data, self.imv.imageItem, axes=self.axes)
+#        z = self.roi.getArrayRegion(self.data, self.imv.imageItem, axes=self.axes)
+        # I use another method, because the python 32 bits is small
 
         self.start = int(self.meanStartEdit.text())
         self.end = int(self.meanEndEdit.text())
-        z = z[self.start:self.start+self.end, :, :]
-            
-        self.mean = np.mean(z, axis=0)  # axis=0 is the frames axis
+
+#        z = self.roi.getArrayRegion(self.data[self.start,:,:], self.imv.imageItem)
+#        
+#        for i in range(1, self.end-self.start):
+#            j = self.start + i
+#            z = z + self.roi.getArrayRegion(self.data[j,:,:], self.imv.imageItem)
+#
+#        print(z.shape)
+##        z = z[self.start:self.start+self.end, :, :]
+#        self.mean = z / (self.end-self.start)
+#        self.mean = np.mean(z, axis=0)  # axis=0 is the frames axis
+
+
+    # This methos is the faster:
+        self.mean = self.roi.getArrayRegion(np.mean(self.data[self.start:self.end,:,:],
+                                                    axis=0), self.imv.imageItem)
+
 
         plot_with_colorbar(self.imv, self.mean)
 
@@ -412,6 +427,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         ROImean image.
         If you have rois in the mean image, they are moved with translatemaxima
         to the good positions in the origianl image. So you can follow them"""
+
+        self.is_trace = False
 
         plot_with_colorbar(self.imv, self.data)
 
@@ -464,7 +481,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 self.mean = self.data
             else:
                 self.mean = self.mean2
-        else:
+        elif not self.is_trace:
             if not self.is_image:
                 try: 
                     self.mean = self.mean2[self.imv.currentIndex,:,:]
@@ -638,7 +655,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         """ fix the numeration and showing rois when you add or remove them
         in this case, call the normal one, and remove the manually yellow"""
         self.relabel_ROI()
-
+        self.remove_gauss_ROI()
         for i in self.removerois:
             self.imv.view.removeItem(self.molRoi[i])
             self.imv.view.removeItem(self.bgRoi[i])
