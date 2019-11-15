@@ -85,6 +85,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 "QPushButton:pressed { background-color: blue; }")
         
         self.btn_small_roi = QtGui.QPushButton('New small ROI')
+        self.btn_small_roi.setStyleSheet(
+                "QPushButton { background-color: rgb(150, 200, 10); }")
         self.btn_gauss_fit = QtGui.QPushButton('Gaussian Fit')
         self.btn_filter_bg = QtGui.QPushButton('Filter bg')
         
@@ -191,7 +193,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         
 
         self.post_grid.addWidget(self.see_labels_button, 3, 25, 1, 2)
-        self.post_grid.addWidget(self.btn_small_roi,     4, 25, 1, 2)
+        self.post_grid.addWidget(self.btn_small_roi,     4, 25, 1, 1)
         self.post_grid.addWidget(self.gauss_fit_label,   5, 25, 1, 1)
         self.post_grid.addWidget(self.gauss_fit_edit,    5, 26, 1, 1)
         self.post_grid.addWidget(self.btn_gauss_fit,     6, 25, 1, 2)
@@ -320,6 +322,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             self.maxDistEdit.setText("60")
             self.moleculeSizeEdit.setText("90")
             self.maxThreshEdit.setText(str(np.mean(self.data[:,:])))
+            self.mean = self.data
 
             
         else:
@@ -440,11 +443,12 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             self.imv.view.addItem(self.roi)
         except:
             pass
-
-        try:
-            del self.mean2
-        except:
-            pass
+        if self.JPG:
+            self.mean = self.data
+#        try:
+#            del self.mean2
+#        except:
+#            pass
 
     def translateMaxima(self):  # go to video call this function
         """ translate the position from the big ROI in to the video again"""
@@ -476,17 +480,26 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         self.start = int(self.meanStartEdit.text())
 
-        if self.JPG:
+#        if self.JPG:
+#            if self.roi == None:
+#                self.mean = self.data
+#            else:
+#                self.mean = self.mean2
+#        elif not self.is_trace:
+#            if not self.is_image:
+#                try: 
+#                    self.mean = self.mean2[self.imv.currentIndex,:,:]
+#                except:
+#                    self.mean = self.data[self.imv.currentIndex,:,:]
+        print("JPG", self.JPG)
+
+        if self.is_trace:
+            print("is trace")
+        elif self.JPG:
+            print("is JPG")
+        else:
             if self.roi == None:
-                self.mean = self.data
-            else:
-                self.mean = self.mean2
-        elif not self.is_trace:
-            if not self.is_image:
-                try: 
-                    self.mean = self.mean2[self.imv.currentIndex,:,:]
-                except:
-                    self.mean = self.data[self.imv.currentIndex,:,:]
+                self.mean = self.data[self.imv.currentIndex,:,:]
 
         # find the local peaks
         self.maximacoord = peak_local_max(self.mean, min_distance=self.dist, threshold_abs=self.threshold)
@@ -579,9 +592,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         if its a JPG only have one option"""
 
         z = self.roi.getArrayRegion(self.data, self.imv.imageItem, axes=self.axes)
-        self.mean2 = z
+        self.mean = z
         
-        plot_with_colorbar(self.imv, self.mean2)
+        plot_with_colorbar(self.imv, self.mean)
 
         self.w.setWindowTitle('SMAnalyzer - ROI Mean - ' + self.f)
         self.imv.view.removeItem(self.roi)
@@ -616,7 +629,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         """ it create a yellow new roi with backgroun and add it to the
         list of rois that want to be analysed"""
 
-        print("\n YOU CLICK MEE 0_o \n")
+        print("\n o_0 YOU CLICK MEE 0_o \n")
 
         self.roiSize = [int(self.moleculeSizeEdit.text())] * 2
         self.bgroiSize = np.array(self.roiSize) + 2* int(self.BgSizeEdit.text())
@@ -671,6 +684,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 p+=1
 
     def see_labels(self):
+        self.relabel_new_ROI()
         if self.see_labels_button.isChecked():
             for i in range(len(self.molRoi)):
                 if i not in self.removerois:
@@ -684,6 +698,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                     self.imv.view.removeItem(self.label[i])
                 except:
                     pass
+
 
     def filter_bg(self):  # connected to filter bg (btn_filter_bg)
         """ Check at the counts in the background zone, if they are above
@@ -921,8 +936,14 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             trace_name = Custom_name  + 'traces-'+ str(b.shape[1])+"("+ str(self.n)+")" + '.txt'
             np.savetxt(trace_name, b, delimiter="    ", newline='\r\n')
             print("\n", b.shape[1],"Traces exported as", trace_name)
-    
+
+            ratio = self.mean.shape[1]/self.mean.shape[0]
+            height = int(1920)
+            width = int(1920*ratio)
             exporter = pg.exporters.ImageExporter(self.imv.imageItem)
+            exporter.params.param('width').setValue(width, blockSignal=exporter.widthChanged)
+            exporter.params.param('height').setValue(height, blockSignal=exporter.heightChanged)
+
             png_name = Custom_name  + 'Image_traces-'+ str(b.shape[1]) +"(" + str(self.n)+")" + '.png'
             exporter.export(png_name)
             print( "\n Picture exported as", png_name)
@@ -950,7 +971,6 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             exporter.params.param('width').setValue(width, blockSignal=exporter.widthChanged)
             exporter.params.param('height').setValue(height, blockSignal=exporter.heightChanged)
 
-            exporter = pg.exporters.ImageExporter(self.imv.imageItem)
             png_name = Custom_name  + 'Image_intensities'+ str(len(b))+"(" + str(self.n)+")" + '.png'
             exporter.export(png_name)
             print( "\n Picture exported as", png_name)
