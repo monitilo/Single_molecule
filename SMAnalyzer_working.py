@@ -386,43 +386,45 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
     def ROImean(self):  # connected to Get ROI mean (traces) (btn4)
         """ get the mean in the big ROI area, between the start and ending
         selected frames. Here self.mean is really a mean"""
-        
-        self.is_image = False
-        self.is_trace = True
-
-        # if you comes from images, it get the colors back to normal
-        self.btn7.setText("Export Traces")
-        self.btn7.setStyleSheet(
-                "QPushButton { background-color: ; }")
-        self.meanEndEdit.setStyleSheet(" background-color: ; ")
-
-#        z = self.roi.getArrayRegion(self.data, self.imv.imageItem, axes=self.axes)
-        # I use another method, because the python 32 bits is small
-
-        self.start = int(self.meanStartEdit.text())
-        self.end = int(self.meanEndEdit.text())
-
-#        z = self.roi.getArrayRegion(self.data[self.start,:,:], self.imv.imageItem)
-#        
-#        for i in range(1, self.end-self.start):
-#            j = self.start + i
-#            z = z + self.roi.getArrayRegion(self.data[j,:,:], self.imv.imageItem)
-#
-#        print(z.shape)
-##        z = z[self.start:self.start+self.end, :, :]
-#        self.mean = z / (self.end-self.start)
-#        self.mean = np.mean(z, axis=0)  # axis=0 is the frames axis
-
-
-    # This methos is the faster:
-        self.mean = self.roi.getArrayRegion(np.mean(self.data[self.start:self.end,:,:],
-                                                    axis=0), self.imv.imageItem)
-
-
-        plot_with_colorbar(self.imv, self.mean)
-
-        self.w.setWindowTitle('SMAnalyzer - ROI Mean - ' + self.f)
-        self.imv.view.removeItem(self.roi)
+        if self.roi == None:
+            print("FIRST CREATE A ROI")
+        else:
+            self.is_image = False
+            self.is_trace = True
+    
+            # if you comes from images, it get the colors back to normal
+            self.btn7.setText("Export Traces")
+            self.btn7.setStyleSheet(
+                    "QPushButton { background-color: ; }")
+            self.meanEndEdit.setStyleSheet(" background-color: ; ")
+    
+    #        z = self.roi.getArrayRegion(self.data, self.imv.imageItem, axes=self.axes)
+            # I use another method, because the python 32 bits is small
+    
+            self.start = int(self.meanStartEdit.text())
+            self.end = int(self.meanEndEdit.text())
+    
+    #        z = self.roi.getArrayRegion(self.data[self.start,:,:], self.imv.imageItem)
+    #        
+    #        for i in range(1, self.end-self.start):
+    #            j = self.start + i
+    #            z = z + self.roi.getArrayRegion(self.data[j,:,:], self.imv.imageItem)
+    #
+    #        print(z.shape)
+    ##        z = z[self.start:self.start+self.end, :, :]
+    #        self.mean = z / (self.end-self.start)
+    #        self.mean = np.mean(z, axis=0)  # axis=0 is the frames axis
+    
+    
+        # This methos is the faster:
+            self.mean = self.roi.getArrayRegion(np.mean(self.data[self.start:self.end,:,:],
+                                                        axis=0), self.imv.imageItem)
+    
+    
+            plot_with_colorbar(self.imv, self.mean)
+    
+            self.w.setWindowTitle('SMAnalyzer - ROI Mean - ' + self.f)
+            self.imv.view.removeItem(self.roi)
 
 
     def showVideo(self):  # connected to Go to vide (btn5)
@@ -491,7 +493,6 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 #                    self.mean = self.mean2[self.imv.currentIndex,:,:]
 #                except:
 #                    self.mean = self.data[self.imv.currentIndex,:,:]
-        print("JPG", self.JPG)
 
         if self.is_trace:
             print("is trace")
