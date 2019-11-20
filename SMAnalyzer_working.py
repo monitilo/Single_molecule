@@ -4,31 +4,70 @@
 
 
 User interface to detect particles in a movie
-and extract its traces in a .txt file
+and extract its traces or spot intensities in a .txt file
+
+
+For extract traces:
 First, A custom sized Region Of Interest(ROI) of the hole image have to be created.
+(can be of the same size of the total image if wanted)
 -choose a start and end frame to average frames within that ROI 
 and have a sharper image where to detect the particles
 -"get ROI mean" returns the image of the averaged ROI, where
-then the maximums will be detected
-.
+then the maximums will be detected.
 For that you need to put (try by hand for the best ones):
 - minimum distance between the max it will gonna find.
 - threshold if you want. Only detect numbers grater that's this.
 automaticaly change to the mean of the first frame when the file is loaded
 -Size: the estimated size of your psf,
- Actually you have to put a good size to don't loose any photon.
+-bgsize: the pixels at each side of the roi to take the background
+     Actually you have to put a good size to don't loose any photon.
 - Detect Molecules: search all the local maximums in the ROI
 averaged, at distances greater than minimun distance. Draw a
 square size*size on each point detected.
-subtract the calculated bakground from a square 1 pixel more than the periphery
-(size + 1)*(size + 1) - size*size. Normalized by size
+subtract the calculated bakground from a square bgsize pixel more than the periphery
+(size + bgsize)*(size + bgsize) - size*size. Normalized by size
 
 -Export Traces: Save the .txt file with 1 column per particle.
+    And a .png file with the image to use as reference
 
-- Choose a Minimun distance between maximum
-- Threshold if necessary. Only detect maximums greater than this
-- Size: the size of your PSF
+Spots intensities: 
+    Just go to the frame you want to look for.
+    select your parameters:
+        - Choose a Minimun distance between maximum
+        - Threshold if necessary. Only detect maximums greater than this
+        - Size: the size of your PSF
+        - backgroun pixels to each side of your roi.
+    click detect Molecules.
+See in the image all the detecctions.
+    export intensities from that frame. All the detection you see (not red)
+        Get one file with 1 colum with sum of all phothons in the roi, 
+normalized by Background.
+        And another "Morgane" file with 2 colums with the individual intensity 
+of the roi and from the backgroun, per spot.
 
+    And a .png file with the image to use as reference
+
+despite the mode, you can add ROIs by hand, using the "New Small roi" button.
+    When click that, a new roi is created in the top left of the image,
+    and you move it around to the place you like. Then click it and this add 
+    a new roi to the image*. Continue until you have all you like.
+    (Right click if you want to delete them)
+    *(do not have to be perfect if you the use the gaussi fit fixing)
+Also, you can filter your detections using:
+    - Gaussian fit: Make a 2D Gaussian fit inside each roi, and move it to the
+center. If the diferences between sigmas (of the fit) is bigger that the 
+imput number, then that spot is removed (apear in red)
+    - Filter bg: Look at the intensity in the background pixels. If they are
+bigger than the imput threshold, discard the spot (red again)
+
+finally, you can make a Histogram of the spots detected just to quickly see.
+If the histogram window is not close, you can add the new points to it. (clicking the button again)
+if close, reestart the numbers
+
+
+The last button "Crazy go", is not for public use. It take the imput number
+to subdivide all the frames in this amount of steps and make a full histogram
+of all the detected spots. It applies both filters: bg; gauss; bg again.
 
 """
 
@@ -295,7 +334,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         root.withdraw()
 
         # Select image from file
-        self.f = filedialog.askopenfilename(filetypes=[("Videos", '*.tiff;*.tif;*.jpg'),
+        self.f = filedialog.askopenfilename(filetypes=[("All", '*.tiff;*.tif;*.jpg'),
+                                                       ("Videos", '*.tiff;*.tif'),
                                                        ("Pictures", "*.jpg")])
         if not self.f:
             print("No elegiste nada")
@@ -303,55 +343,54 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             self.file_path = self.f
             print("direccion elegida: \n", self.file_path, "\n")
 
-        if self.f[-4:] == ".jpg":  # in case I want one picture
-
-            self.JPG = True
-            self.axes = (0,1)  # axe 2 are the 3 coloms of RGB
-            print("WORKING ON THIS \n","JPG =", self.JPG,)
-            self.data = np.mean(io.imread(self.f), axis=2)
-            print(self.data.shape)
-            self.meanStartLabel.setStyleSheet(" color: red; ")
-            self.meanEndLabel.setStyleSheet(" color: red; ")
-            self.meanStartEdit.setStyleSheet(" background-color: red; ")
-            self.meanEndEdit.setStyleSheet(" background-color: red; ")
-            self.btn7.setText("Export Intensities")
-            self.btn4.setStyleSheet(
-                "QPushButton { background-color: rgb(10, 30, 10); }")
-            self.total_size = [self.data.shape[1], self.data.shape[0]]
-
-            self.maxDistEdit.setText("60")
-            self.moleculeSizeEdit.setText("90")
-            self.maxThreshEdit.setText(str(np.mean(self.data[:,:])))
-            self.mean = self.data
-
+            if self.f[-4:] == ".jpg":  # in case I want one picture
+    
+                self.JPG = True
+                self.axes = (0,1)  # axe 2 is the coloms of RGB
+    #            print("WORKING ON THIS \n","JPG =", self.JPG,)
+                self.data = np.mean(io.imread(self.f), axis=2)
+                self.meanStartLabel.setStyleSheet(" color: red; ")
+                self.meanEndLabel.setStyleSheet(" color: red; ")
+                self.meanStartEdit.setStyleSheet(" background-color: red; ")
+                self.meanEndEdit.setStyleSheet(" background-color: red; ")
+                self.btn7.setText("Export Intensities")
+                self.btn4.setStyleSheet(
+                    "QPushButton { background-color: rgb(10, 30, 10); }")
+                self.total_size = [self.data.shape[1], self.data.shape[0]]
+    
+                self.maxDistEdit.setText("60")
+                self.moleculeSizeEdit.setText("90")
+                self.maxThreshEdit.setText(str(np.mean(self.data[:,:])))
+                self.mean = self.data
+    
+                
+            else:
+                # Import selected image
+                self.data = io.imread(self.f)
+                self.axes = (1,2)  # axe 0 are the frames
+                self.total_size = [self.data.shape[2], self.data.shape[1]]
+    
+                self.maxDistEdit.setText("6")
+                self.moleculeSizeEdit.setText("9")
+                self.maxThreshEdit.setText(str(np.mean(self.data[1,:,:])))
+    
+    
+            # Delete existing ROIs
+            self.deleteROI()
+            self.clear_all()
             
-        else:
-            # Import selected image
-            self.data = io.imread(self.f)
-            self.axes = (1,2)  # axe 0 are the frames
-            self.total_size = [self.data.shape[2], self.data.shape[1]]
-
-            self.maxDistEdit.setText("6")
-            self.moleculeSizeEdit.setText("9")
-            self.maxThreshEdit.setText(str(np.mean(self.data[1,:,:])))
-
-
-        # Delete existing ROIs
-        self.deleteROI()
-        self.clear_all()
-        
-        plot_with_colorbar(self.imv, self.data)
-
-        self.w.setWindowTitle('SMAnalyzer - Video - ' + self.f)
-        self.imv.sigTimeChanged.connect(self.indexChanged)
-
-        self.validator = QtGui.QIntValidator(0, self.data.shape[0])
-        self.meanStartEdit.setValidator(self.validator)
-        self.meanEndEdit.setValidator(self.validator)
-#        try:
-#            self.maxThreshEdit.setText(str(np.mean(self.data[1,:,:])))
-#        except:
-#            pass
+            plot_with_colorbar(self.imv, self.data)
+    
+#            self.w.setWindowTitle('SMAnalyzer - Video - ' + self.f)
+            self.imv.sigTimeChanged.connect(self.indexChanged)
+    
+            self.validator = QtGui.QIntValidator(0, self.data.shape[0])
+            self.meanStartEdit.setValidator(self.validator)
+            self.meanEndEdit.setValidator(self.validator)
+    #        try:
+    #            self.maxThreshEdit.setText(str(np.mean(self.data[1,:,:])))
+    #        except:
+    #            pass
 
     def update_image(self):  # Put the start frame in the image when change the number
         self.imv.setCurrentIndex(int(self.meanStartEdit.text()))
@@ -423,7 +462,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
     
             plot_with_colorbar(self.imv, self.mean)
     
-            self.w.setWindowTitle('SMAnalyzer - ROI Mean - ' + self.f)
+#            self.w.setWindowTitle('SMAnalyzer - ROI Mean - ' + self.f)
             self.imv.view.removeItem(self.roi)
 
 
@@ -437,7 +476,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         plot_with_colorbar(self.imv, self.data)
 
-        self.w.setWindowTitle('SMAnalyzer - Video - ' + self.f)
+#        self.w.setWindowTitle('SMAnalyzer - Video - ' + self.f)
         self.meanEndEdit.setStyleSheet(" background-color: ; ")
 
         try:
@@ -597,7 +636,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         
         plot_with_colorbar(self.imv, self.mean)
 
-        self.w.setWindowTitle('SMAnalyzer - ROI Mean - ' + self.f)
+#        self.w.setWindowTitle('SMAnalyzer - ROI Mean - ' + self.f)
         self.imv.view.removeItem(self.roi)
 
 
