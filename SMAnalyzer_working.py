@@ -84,7 +84,7 @@ from scipy import optimize
 
 from pyqtgraph.dockarea import Dock, DockArea
 
-import time as time
+#import time as time
 
 class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
@@ -338,10 +338,10 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                                                        ("Videos", '*.tiff;*.tif'),
                                                        ("Pictures", "*.jpg")])
         if not self.f:
-            print("No elegiste nada")
+            print("You choosed nothing")
         else:
             self.file_path = self.f
-            print("direccion elegida: \n", self.file_path, "\n")
+            print("Choosed path: \n", self.file_path, "\n")
 
             if self.f[-4:] == ".jpg":  # in case I want one picture
     
@@ -593,7 +593,10 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             print("ZERO points finded. ZERO!!")
         self.relabel_new_ROI()
 
-        if not self.is_image:
+        if self.is_trace:
+            self.btn7.setText("Export traces")
+
+        elif not self.is_image:
             self.btn7.setText("Intensities from frame={}".format(int(self.meanStartEdit.text())))
         
         self.see_labels_button.setChecked(True)
@@ -893,14 +896,17 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         for i in range(len(self.molRoi)):  #2 np.arange(0, self.maxnumber):
             if i not in self.removerois:
                 # get molecule array
-                molArray[i] = self.molRoi[i].getArrayRegion(self.data, self.imv.imageItem, axes=self.axes, returnMappedCoords=False)
+                molArray[i] = self.molRoi[i].getArrayRegion(self.data,
+                        self.imv.imageItem,
+                        axes=self.axes,
+                        returnMappedCoords=False)
                 # get normalized background
                 bgNorm[i] = get_counts_bgNorm(self.imv, self.data,
                                           self.molRoi[i], self.bgRoi[i],
                                           int(self.moleculeSizeEdit.text()),
                                           int(self.BgSizeEdit.text()))
 
-                self.trace[p] = np.sum(molArray[i], axis=self.axes) - bgNorm[i]
+                self.trace[p] = (np.sum(molArray[i], axis=self.axes)- bgNorm[i]) / float(self.time_adquisitionEdit.text())
                 p +=1 # I have to use this to have order because of removerois
 
         # Save traces as an array
@@ -918,7 +924,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         substract the counts from the normalized backgruond """
 
         print("Calculate Images")
-        
+        self.roiSize = [int(self.moleculeSizeEdit.text())] * 2
+        self.bgroiSize = np.array(self.roiSize) + 2* int(self.BgSizeEdit.text())  # one pixel each side
+
         # Create dict with spots
         self.sum_spot = dict()
         molArray = dict()
@@ -931,20 +939,21 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         for i in range(len(self.molRoi)):  # np.arange(0, self.maxnumber):
             if i not in self.removerois:             
                 # get molecule array
-                molArray[i] = self.molRoi[i].getArrayRegion(self.mean, self.imv.imageItem)
+                molArray[i] = self.molRoi[i].getArrayRegion(self.mean, self.imv.imageItem) /float(self.time_adquisitionEdit.text())
 
                 # get background plus molecule array
-                bgArray[i] = self.bgRoi[i].getArrayRegion(self.mean, self.imv.imageItem)
+                bgArray[i] = self.bgRoi[i].getArrayRegion(self.mean, self.imv.imageItem) /float(self.time_adquisitionEdit.text())
 
                 # get normalized background
                 bgNorm[i] = get_counts_bgNorm(self.imv, self.mean,
                                           self.molRoi[i], self.bgRoi[i],
                                           int(self.moleculeSizeEdit.text()),
-                                          int(self.BgSizeEdit.text()))
+                                          int(self.BgSizeEdit.text()),
+                                          float(self.time_adquisitionEdit.text()))
 
-                self.sum_spot[p] = np.sum(molArray[i]) - bgNorm[i]
+                self.sum_spot[p] = (np.sum(molArray[i]) - bgNorm[i])
                 p +=1 # I have to use this to have order because of removerois
-                morgane.append((np.sum(molArray[i]), np.sum(bgArray[i])))
+                morgane.append((np.sum(molArray[i])/(self.roiSize)[0]**2, np.sum(bgArray[i])/(self.bgroiSize)[0]**2))
 
         # Save sums as an array
         a = []
@@ -1107,7 +1116,7 @@ class MyPopup_histogram(QtGui.QWidget):
 
         self.setWindowTitle("Histogram. (ESC key, close it.)")
 
-        vals = self.intensitys / float(self.main.time_adquisitionEdit.text())
+        vals = self.intensitys
         y,x = np.histogram(vals)
         self.p1.plot(x, y, stepMode=True, fillLevel=0, brush=(0,0,255,150))
         self.p1.showGrid(x = True, y = True, alpha = 0.5)
@@ -1184,7 +1193,7 @@ def plot_with_colorbar(imv,data):
     cmap = pg.ColorMap(pos=np.linspace(0.0, 1.0, 6), color=colors)
     imv.setColorMap(cmap)
 
-def get_counts_bgNorm(imv, image, molRoi, bgRoi, moleculeSize, BgSize):
+def get_counts_bgNorm(imv, image, molRoi, bgRoi, moleculeSize, BgSize, adq_time=1):
     mean = image
     # get molecule array
     molArray = molRoi.getArrayRegion(mean, imv.imageItem)
@@ -1199,7 +1208,7 @@ def get_counts_bgNorm(imv, image, molRoi, bgRoi, moleculeSize, BgSize):
     n = moleculeSize
     m = (2*BgSize) + moleculeSize
     bgNorm = (n*n)*(bg) / (m*m - n*n)
-    return bgNorm
+    return bgNorm / adq_time
 
 # %% END... Its a neverending story ♪♫
 if __name__ == '__main__':
