@@ -84,6 +84,8 @@ from scipy import optimize
 
 from pyqtgraph.dockarea import Dock, DockArea
 
+
+
 #import time as time
 
 class smAnalyzer(pg.Qt.QtGui.QMainWindow):
@@ -348,7 +350,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 self.JPG = True
                 self.axes = (0,1)  # axe 2 is the coloms of RGB
     #            print("WORKING ON THIS \n","JPG =", self.JPG,)
-                self.data = np.mean(io.imread(self.f), axis=2)
+                self.data = np.sum(io.imread(self.f), axis=2)
                 self.meanStartLabel.setStyleSheet(" color: red; ")
                 self.meanEndLabel.setStyleSheet(" color: red; ")
                 self.meanStartEdit.setStyleSheet(" background-color: red; ")
@@ -521,18 +523,6 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         self.start = int(self.meanStartEdit.text())
 
-#        if self.JPG:
-#            if self.roi == None:
-#                self.mean = self.data
-#            else:
-#                self.mean = self.mean2
-#        elif not self.is_trace:
-#            if not self.is_image:
-#                try: 
-#                    self.mean = self.mean2[self.imv.currentIndex,:,:]
-#                except:
-#                    self.mean = self.data[self.imv.currentIndex,:,:]
-
         if self.is_trace:
             print("is trace")
         elif self.JPG:
@@ -546,10 +536,12 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         maxvalues = []
         for i in range(len(self.maximacoord[:,0])):
-            maxvalues.append(self.mean[self.maximacoord[i,0],self.maximacoord[i,1]])
+            maxvalues.append(self.mean[self.maximacoord[i,0], self.maximacoord[i,1]])
 
         # filter spurious peaks taking only the brighters ones
         nomaxlow = np.where(np.array(maxvalues) < np.mean(maxvalues))[0]
+        print("len maxvalues", len(maxvalues))
+        print("nomaxlow", len(nomaxlow))
         
         aux = np.arange(len(maxvalues))
         goodmax = np.delete(aux,nomaxlow)
@@ -887,28 +879,70 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         # Create dict with traces
         self.trace = dict()
         molArray = dict()
-#        bgArray = dict()
-#        bg = dict()
+        bgArray = dict()
+        bg = dict()
         bgNorm = dict()
 
 #        s = (2*int(self.BgSizeEdit.text()))  # bgsize = molsize + s
         p=0
         for i in range(len(self.molRoi)):  #2 np.arange(0, self.maxnumber):
             if i not in self.removerois:
+                print("axes", self.axes)
                 # get molecule array
                 molArray[i] = self.molRoi[i].getArrayRegion(self.data,
-                        self.imv.imageItem,
-                        axes=self.axes,
-                        returnMappedCoords=False)
-                # get normalized background
-                bgNorm[i] = get_counts_bgNorm(self.imv, self.data,
-                                          self.molRoi[i], self.bgRoi[i],
-                                          int(self.moleculeSizeEdit.text()),
-                                          int(self.BgSizeEdit.text()))
+                                                    self.imv.imageItem,
+                                                    axes=self.axes,
+                                                    returnMappedCoords=False)
 
-                self.trace[p] = (np.sum(molArray[i], axis=self.axes)- bgNorm[i]) / float(self.time_adquisitionEdit.text())
+# =============================================================================
+#                 # get normalized background
+#                 bgNorm[i] = get_counts_bgNorm(self.imv, self.data,
+#                                           self.molRoi[i], self.bgRoi[i],
+#                                           int(self.moleculeSizeEdit.text()),
+#                                           int(self.BgSizeEdit.text()))
+# =============================================================================
+
+                # get background plus molecule array
+                bgArray[i] = self.bgRoi[i].getArrayRegion(self.data,
+                                                    self.imv.imageItem,
+                                                    axes=(1,2),
+                                                    returnMappedCoords=False)
+                 
+                # get background array
+                bg[i] = np.sum(bgArray[i], axis=(1,2)) - np.sum(molArray[i], axis=(1,2))
+                 
+                 # get total background to substract from molecule traces
+#                 bgNorm[i,j] = (int(self.moleculeSizeEdit.text())**2)*(bg[i,j])/(4*(int(self.moleculeSizeEdit.text())+1))
+
+                n = int(self.moleculeSizeEdit.text())
+                m = (2*int(self.BgSizeEdit.text())) + n
+                bgNorm[i] = (n*n)*(bg[i]) / (m*m - n*n)
+                                
+                print("bgnormshape", bgNorm[i].shape, "molarrayshape", molArray[i].shape)
+                self.trace[p] = (np.sum(molArray[i], axis=self.axes) - bgNorm[i]) / float(self.time_adquisitionEdit.text())
+                print("trace", self.trace[p].shape, "mean", np.sum(molArray[i], axis=self.axes).shape )
                 p +=1 # I have to use this to have order because of removerois
-
+                
+                # get molecule array
+# =============================================================================
+#                 molArray[i,j] = self.molRoi[i,j].getArrayRegion(self.data, self.imv.imageItem, axes=(1, 2), returnMappedCoords=False)
+# 
+#                 # get background plus molecule array
+#                 bgArray[i,j] = self.bgRoi[i,j].getArrayRegion(self.data, self.imv.imageItem, axes=(1, 2), returnMappedCoords=False)
+#                 
+#                 # get background array
+#                 bg[i,j] = np.sum(bgArray[i,j], axis=(1,2)) - np.sum(molArray[i,j], axis=(1,2))
+#                 
+#                 # get total background to substract from molecule traces
+#                 bgNorm[i,j] = (int(self.moleculeSizeEdit.text())**2)*(bg[i,j])/(4*(int(self.moleculeSizeEdit.text())+1))
+#                 
+#                 # Correct second channel by channel correction input
+#                 if j == 0:
+#                     self.trace[i,j] = np.sum(molArray[i,j], axis=(1,2)) - bgNorm[i,j]
+#                 else:
+#                     self.trace[i,j] = float(self.channelCorrectionEdit.text())*(np.sum(molArray[i,j], axis=(1,2)) - bgNorm[i,j])
+#         
+# =============================================================================
         # Save traces as an array
         a = []
         for p in range(len(self.trace)):
