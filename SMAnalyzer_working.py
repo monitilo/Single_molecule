@@ -350,7 +350,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 self.JPG = True
                 self.axes = (0,1)  # axe 2 is the coloms of RGB
     #            print("WORKING ON THIS \n","JPG =", self.JPG,)
-                self.data = np.sum(io.imread(self.f), axis=2)
+                self.data = np.sum(io.imread(self.f), axis=2)  # io.imread(self.f)[:,:,1]  # Only green?
                 self.meanStartLabel.setStyleSheet(" color: red; ")
                 self.meanEndLabel.setStyleSheet(" color: red; ")
                 self.meanStartEdit.setStyleSheet(" background-color: red; ")
@@ -577,7 +577,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             # Create ROI label
             self.label[i] = pg.TextItem(text=str(i))
             self.label[i].setPos(self.molRoi[i].pos())
-            self.imv.view.addItem(self.label[i])
+            if self.see_labels_button.isChecked():
+                self.imv.view.addItem(self.label[i])
             p+=1
         try:
             self.fixing_number = i + 1
@@ -693,7 +694,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         self.label[i] = pg.TextItem(text=str(i))
         self.label[i].setPos(self.molRoi[i].pos())
-        self.imv.view.addItem(self.label[i])
+        if self.see_labels_button.isChecked():
+            self.imv.view.addItem(self.label[i])
 
         self.fixing_number = i + 1
 
@@ -894,55 +896,23 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                                                     axes=self.axes,
                                                     returnMappedCoords=False)
 
-# =============================================================================
-#                 # get normalized background
-#                 bgNorm[i] = get_counts_bgNorm(self.imv, self.data,
-#                                           self.molRoi[i], self.bgRoi[i],
-#                                           int(self.moleculeSizeEdit.text()),
-#                                           int(self.BgSizeEdit.text()))
-# =============================================================================
-
                 # get background plus molecule array
                 bgArray[i] = self.bgRoi[i].getArrayRegion(self.data,
                                                     self.imv.imageItem,
                                                     axes=(1,2),
                                                     returnMappedCoords=False)
-                 
+
                 # get background array
                 bg[i] = np.sum(bgArray[i], axis=(1,2)) - np.sum(molArray[i], axis=(1,2))
-                 
-                 # get total background to substract from molecule traces
-#                 bgNorm[i,j] = (int(self.moleculeSizeEdit.text())**2)*(bg[i,j])/(4*(int(self.moleculeSizeEdit.text())+1))
 
+                 # get total background to substract from molecule traces
                 n = int(self.moleculeSizeEdit.text())
                 m = (2*int(self.BgSizeEdit.text())) + n
                 bgNorm[i] = (n*n)*(bg[i]) / (m*m - n*n)
                                 
-                print("bgnormshape", bgNorm[i].shape, "molarrayshape", molArray[i].shape)
                 self.trace[p] = (np.sum(molArray[i], axis=self.axes) - bgNorm[i]) / float(self.time_adquisitionEdit.text())
-                print("trace", self.trace[p].shape, "mean", np.sum(molArray[i], axis=self.axes).shape )
                 p +=1 # I have to use this to have order because of removerois
-                
-                # get molecule array
-# =============================================================================
-#                 molArray[i,j] = self.molRoi[i,j].getArrayRegion(self.data, self.imv.imageItem, axes=(1, 2), returnMappedCoords=False)
-# 
-#                 # get background plus molecule array
-#                 bgArray[i,j] = self.bgRoi[i,j].getArrayRegion(self.data, self.imv.imageItem, axes=(1, 2), returnMappedCoords=False)
-#                 
-#                 # get background array
-#                 bg[i,j] = np.sum(bgArray[i,j], axis=(1,2)) - np.sum(molArray[i,j], axis=(1,2))
-#                 
-#                 # get total background to substract from molecule traces
-#                 bgNorm[i,j] = (int(self.moleculeSizeEdit.text())**2)*(bg[i,j])/(4*(int(self.moleculeSizeEdit.text())+1))
-#                 
-#                 # Correct second channel by channel correction input
-#                 if j == 0:
-#                     self.trace[i,j] = np.sum(molArray[i,j], axis=(1,2)) - bgNorm[i,j]
-#                 else:
-#                     self.trace[i,j] = float(self.channelCorrectionEdit.text())*(np.sum(molArray[i,j], axis=(1,2)) - bgNorm[i,j])
-#         
-# =============================================================================
+
         # Save traces as an array
         a = []
         for p in range(len(self.trace)):
@@ -964,7 +934,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         # Create dict with spots
         self.sum_spot = dict()
         molArray = dict()
-        bgArray = dict()
+#        bgArray = dict()
+        weber = dict()
 #        bg = dict()
         bgNorm = dict()
         morgane = []
@@ -976,7 +947,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 molArray[i] = self.molRoi[i].getArrayRegion(self.mean, self.imv.imageItem) /float(self.time_adquisitionEdit.text())
 
                 # get background plus molecule array
-                bgArray[i] = self.bgRoi[i].getArrayRegion(self.mean, self.imv.imageItem) /float(self.time_adquisitionEdit.text())
+#                bgArray[i] = self.bgRoi[i].getArrayRegion(self.mean, self.imv.imageItem) /float(self.time_adquisitionEdit.text())
 
                 # get normalized background
                 bgNorm[i] = get_counts_bgNorm(self.imv, self.mean,
@@ -986,8 +957,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                                           float(self.time_adquisitionEdit.text()))
 
                 self.sum_spot[p] = (np.sum(molArray[i]) - bgNorm[i])
+                weber[p] = self.sum_spot[p] / bgNorm[i]
+                morgane.append((self.sum_spot[p], bgNorm[i], weber[p]))
                 p +=1 # I have to use this to have order because of removerois
-                morgane.append((np.sum(molArray[i])/(self.roiSize)[0]**2, np.sum(bgArray[i])/(self.bgroiSize)[0]**2))
 
         # Save sums as an array
         a = []
@@ -1034,6 +1006,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             self.n += 1
 
         if what == "images":
+            header = "Counts in Roi"+"    "+"Background (normalize by roisize)"+"    "+"Wever contrast"
             if self.histo_data:
                 b = self.intensitys2
             else:
@@ -1044,7 +1017,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
             c = self.morgane
             intensities_morgane_name = Custom_name  + 'intensities_morgane' + str(len(c))+"(" + str(self.n)+")"+ '.txt'
-            np.savetxt(intensities_morgane_name, c, delimiter="    ", newline='\r\n')
+            np.savetxt(intensities_morgane_name, c, delimiter="    ", newline='\r\n', header=header)
             print("\n", len(c), "Intensities exported as", intensities_morgane_name)
 
             ratio = self.mean.shape[1]/self.mean.shape[0]
