@@ -350,7 +350,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 self.JPG = True
                 self.axes = (0,1)  # axe 2 is the coloms of RGB
     #            print("WORKING ON THIS \n","JPG =", self.JPG,)
-                self.data = np.sum(io.imread(self.f), axis=2)  # io.imread(self.f)[:,:,1]  # Only green?
+                self.data = np.mean(io.imread(self.f), axis=2)  # io.imread(self.f)[:,:,1]  # Only green?
                 self.meanStartLabel.setStyleSheet(" color: red; ")
                 self.meanEndLabel.setStyleSheet(" color: red; ")
                 self.meanStartEdit.setStyleSheet(" background-color: red; ")
@@ -1232,6 +1232,9 @@ if __name__ == '__main__':
 circularity---
 
 maxnumber ?
+
+Resize the all the rois
+
 """
 
 
