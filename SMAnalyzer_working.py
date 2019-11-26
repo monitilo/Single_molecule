@@ -1032,13 +1032,15 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             header = "Counts in Roi"+"    "+"Background (normalize by roisize)"+"    "+"Wever contrast"
             if self.histo_data:
                 b = self.intensitys2
+                c = self.morgane2
             else:
                 b = self.intensitys
+                c = self.morgane
+
             intensities_name = Custom_name  + 'intensities' + str(len(b))+"(" + str(self.n)+")"+ '.txt'
             np.savetxt(intensities_name, b, delimiter="    ", newline='\r\n')
             print("\n", len(b), "Intensities exported as", intensities_name)
 
-            c = self.morgane
             intensities_morgane_name = Custom_name  + 'intensities_morgane' + str(len(c))+"(" + str(self.n)+")"+ '.txt'
             np.savetxt(intensities_morgane_name, c, delimiter="    ", newline='\r\n', header=header)
             print("\n", len(c), "Intensities exported as", intensities_morgane_name)
@@ -1098,8 +1100,11 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         try:
             self.intensitys2 = np.concatenate((self.intensitys,
                                                self.intensitys2))
+            self.morgane2 = np.concatenate((self.morgane,
+                                               self.morgane2))
         except:
             self.intensitys2 = self.intensitys
+            self.morgane2 = self.morgane
         self.doit()
         self.histo_data = True
         self.btn7.setText("Export all histogram data ({})".format(len(self.intensitys2)))
@@ -1119,6 +1124,7 @@ class MyPopup_histogram(QtGui.QWidget):
         """ things to do when the windows is closed: erase all the acumulated
         data; change the text on the butto to make clear what you have"""
         self.main.intensitys2 = None
+        self.main.morgane2 = None
         self.main.histo_data = False
         self.main.btn7.setText("Export only last ({}) points".format(len(self.main.intensitys)))
         
