@@ -264,6 +264,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         # automatic action when you edit the number 
         self.meanStartEdit.textEdited.connect(self.update_image)
 
+        self.moleculeSizeEdit.textEdited.connect(self.update_size_rois)
+        self.BgSizeEdit.textEdited.connect(self.update_size_rois)
+
         # a Python timer that call a function with a specific clock (later)
         self.automatic_crazytimer = QtCore.QTimer()
         self.automatic_crazytimer.timeout.connect(self.automatic_crazy)
@@ -346,7 +349,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             print("Choosed path: \n", self.file_path, "\n")
 
             if self.f[-4:] == ".jpg":  # in case I want one picture
-    
+
                 self.JPG = True
                 self.axes = (0,1)  # axe 2 is the coloms of RGB
     #            print("WORKING ON THIS \n","JPG =", self.JPG,)
@@ -359,33 +362,33 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 self.btn4.setStyleSheet(
                     "QPushButton { background-color: rgb(10, 30, 10); }")
                 self.total_size = [self.data.shape[1], self.data.shape[0]]
-    
+
                 self.maxDistEdit.setText("60")
                 self.moleculeSizeEdit.setText("90")
                 self.maxThreshEdit.setText(str(np.mean(self.data[:,:])))
                 self.mean = self.data
-    
+
                 
             else:
                 # Import selected image
                 self.data = io.imread(self.f)
                 self.axes = (1,2)  # axe 0 are the frames
                 self.total_size = [self.data.shape[2], self.data.shape[1]]
-    
+
                 self.maxDistEdit.setText("6")
                 self.moleculeSizeEdit.setText("9")
                 self.maxThreshEdit.setText(str(np.mean(self.data[1,:,:])))
-    
-    
+
+
             # Delete existing ROIs
             self.deleteROI()
             self.clear_all()
             
             plot_with_colorbar(self.imv, self.data)
-    
+
 #            self.w.setWindowTitle('SMAnalyzer - Video - ' + self.f)
             self.imv.sigTimeChanged.connect(self.indexChanged)
-    
+
             self.validator = QtGui.QIntValidator(0, self.data.shape[0])
             self.meanStartEdit.setValidator(self.validator)
             self.meanEndEdit.setValidator(self.validator)
@@ -432,19 +435,19 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         else:
             self.is_image = False
             self.is_trace = True
-    
+
             # if you comes from images, it get the colors back to normal
             self.btn7.setText("Export Traces")
             self.btn7.setStyleSheet(
                     "QPushButton { background-color: ; }")
             self.meanEndEdit.setStyleSheet(" background-color: ; ")
-    
+
     #        z = self.roi.getArrayRegion(self.data, self.imv.imageItem, axes=self.axes)
             # I use another method, because the python 32 bits is small
-    
+
             self.start = int(self.meanStartEdit.text())
             self.end = int(self.meanEndEdit.text())
-    
+
     #        z = self.roi.getArrayRegion(self.data[self.start,:,:], self.imv.imageItem)
     #        
     #        for i in range(1, self.end-self.start):
@@ -455,15 +458,13 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
     ##        z = z[self.start:self.start+self.end, :, :]
     #        self.mean = z / (self.end-self.start)
     #        self.mean = np.mean(z, axis=0)  # axis=0 is the frames axis
-    
-    
+
         # This methos is the faster:
             self.mean = self.roi.getArrayRegion(np.mean(self.data[self.start:self.end,:,:],
                                                         axis=0), self.imv.imageItem)
-    
-    
+
             plot_with_colorbar(self.imv, self.mean)
-    
+
 #            self.w.setWindowTitle('SMAnalyzer - ROI Mean - ' + self.f)
             self.imv.view.removeItem(self.roi)
 
@@ -518,7 +519,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         
         # set roi Dimension array
         self.roiSize = [int(self.moleculeSizeEdit.text())] * 2
-        self.bgroiSize = np.array(self.roiSize) + 2* int(self.BgSizeEdit.text())  # one pixel each side
+        self.bgroiSize = np.array(self.roiSize) + 2* int(self.BgSizeEdit.text())  # s pixel each side
         center = int(self.BgSizeEdit.text()) * np.array([1, 1])
 
         self.start = int(self.meanStartEdit.text())
@@ -593,6 +594,27 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             self.btn7.setText("Intensities from frame={}".format(int(self.meanStartEdit.text())))
         
         self.see_labels_button.setChecked(True)
+
+    def update_size_rois(self):
+        roiSize = (int(self.moleculeSizeEdit.text()))
+        bgroiSize = roiSize + 2* int(self.BgSizeEdit.text())  # s pixel each side
+        center = ((roiSize - self.roiSize[0])/2) * np.array([1, 1])
+        centerbg = int(self.BgSizeEdit.text()) * np.array([1, 1])
+
+        try:
+            for i in range(len(self.molRoi)):
+                if i not in self.removerois:
+                    posold = self.molRoi[i].pos()
+                    self.molRoi[i].setSize(roiSize, roiSize)
+                    self.bgRoi[i].setSize(bgroiSize, bgroiSize)
+
+                    self.molRoi[i].setPos(posold-center)
+                    self.bgRoi[i].setPos(self.molRoi[i].pos()-centerbg)
+                    self.label[i].setPos(self.molRoi[i].pos())
+            self.roiSize = [int(self.moleculeSizeEdit.text())] * 2
+        except:
+            print("You don't have rois (if you have it, please tell German)")
+            pass
 
     def exportTraces_or_images(self):  # connected to export traces button (btn7)
         if self.is_trace:
@@ -776,6 +798,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         molArray = dict()
         self.gauss_roi = dict()
+        roiSize = [int(self.moleculeSizeEdit.text())] * 2
         print("Gauss fit for",len(self.molRoi)-len(self.removerois), "spots")
         a = 0
         for i in range(len(self.molRoi)):
@@ -789,13 +812,13 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                     continue
 
                 (height, x, y, width_x, width_y) = new_params
-                newx = x-self.roiSize[0]//2 + 0.5  # that is not pixel fixed
-                newy = y-self.roiSize[1]//2 + 0.5
+                newx = x-roiSize[0]//2 + 0.5  # that is not pixel fixed
+                newy = y-roiSize[1]//2 + 0.5
                 originx =  self.molRoi[i].pos()[0]
                 originy =  self.molRoi[i].pos()[1]
                 
                 # new name for the old roi position
-                self.gauss_roi[i] = pg.ROI([originx,originy], self.roiSize, pen=(100,50,200,200),
+                self.gauss_roi[i] = pg.ROI([originx,originy], roiSize, pen=(100,50,200,200),
                                                                scaleSnap=True,
                                                                translateSnap=True,
                                                                movable=False,
