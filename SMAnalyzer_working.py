@@ -82,6 +82,7 @@ import pyqtgraph.exporters
 from scipy import ndimage as ndi
 from scipy import optimize
 
+import os
 from pyqtgraph.dockarea import Dock, DockArea
 
 
@@ -323,11 +324,20 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.fixing_number = 0
 
         # Save file number
-        self.n = 0
 
         self.is_image = False
         self.histo_data = False
         self.is_trace = False
+
+    # Shortcuts
+        self.good_selection_Action = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('ctrl+b'), self, self.filter_bg)
+
+        self.bad_selection_Action = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('ctrl+g'), self, self.gaussian_fit_ROI)
+
 
     def importImage(self):  # connected to Load Image (btn1)
         """Select a file to analyse, can be a tif or jpg(on progres)
@@ -903,6 +913,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         # Create dict with traces
         self.trace = dict()
+        self.trace_bg = dict()
         molArray = dict()
         bgArray = dict()
         bg = dict()
@@ -912,7 +923,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         p=0
         for i in range(len(self.molRoi)):  #2 np.arange(0, self.maxnumber):
             if i not in self.removerois:
-                print("axes", self.axes)
+#                print("axes", self.axes)
                 # get molecule array
                 molArray[i] = self.molRoi[i].getArrayRegion(self.data,
                                                     self.imv.imageItem,
@@ -934,16 +945,21 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 bgNorm[i] = (n*n)*(bg[i]) / (m*m - n*n)
                                 
                 self.trace[p] = (np.sum(molArray[i], axis=self.axes) - bgNorm[i]) / float(self.time_adquisitionEdit.text())
+                self.trace_bg[p] = bgNorm[i]
                 p +=1 # I have to use this to have order because of removerois
 
         # Save traces as an array
         a = []
+        a_bg = []
         for p in range(len(self.trace)):
             a.append(self.trace[p])
+            a_bg.append(self.trace_bg[p])
 
-        b = np.array(a).T        
+        b = np.array(a).T
+        c = np.array(a_bg).T
         print("len traces", len(b))
         self.traces = b
+        self.traces_bg = c
 
     def calculate_images(self):# from exportTraces_or_images (<- btn7 call it)
         """ calculate the traces to save.
@@ -1006,14 +1022,36 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         this las self.n change every click to avoid lost data.
         Now, alse sabes another file with the molArray and background
         without substracting anything, as morgane aks for.
+        I CHANGE THE METHOD FOR SOME BETHER WAY OF DO THAT
+        (I will write the new one later)
         """
 
-        Custom_name  = str(self.edit_save.text()) + "_"
+        N = 0
+        number = ""
+
         if what == "trace":
             b = self.traces
-            trace_name = Custom_name  + 'traces-'+ str(b.shape[1])+"("+ str(self.n)+")" + '.txt'
+            trace_name = self.custom_name  + 'traces'+ str(b.shape[1])+ number +'.txt'
+            while os.path.isfile(trace_name):
+                print(trace_name)
+                number = "("+ str(N) +")"
+                trace_name = self.custom_name  + 'traces'+ str(b.shape[1])+ number +'.txt'
+                print(trace_name)
+                N += 1
             np.savetxt(trace_name, b, delimiter="    ", newline='\r\n')
             print("\n", b.shape[1],"Traces exported as", trace_name)
+
+            c = self.traces_bg
+            trace_bg_name = self.custom_name  + 'traces_background-'+ str(c.shape[1]) + number +'.txt'
+            while os.path.isfile(trace_bg_name):
+                print(trace_bg_name)
+                number = "("+ str(N) +")"
+                trace_bg_name = self.custom_name  + 'traces_background-'+ str(c.shape[1]) + number +'.txt'
+                print(trace_bg_name)
+                N += 1
+
+            np.savetxt(trace_bg_name, c, delimiter="    ", newline='\r\n')
+            print("\n", c.shape[1],"Traces exported as", trace_bg_name)
 
             ratio = self.mean.shape[1]/self.mean.shape[0]
             height = int(1920)
@@ -1022,11 +1060,17 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             exporter.params.param('width').setValue(width, blockSignal=exporter.widthChanged)
             exporter.params.param('height').setValue(height, blockSignal=exporter.heightChanged)
 
-            png_name = Custom_name  + 'Image_traces-'+ str(b.shape[1]) +"(" + str(self.n)+")" + '.png'
+            png_name = self.custom_name  + 'Image_traces-'+ str(b.shape[1]) + number + '.png'
+            while os.path.isfile(png_name):
+                print(png_name)
+                number = "("+ str(N) +")"
+                png_name = self.custom_name  + 'Image_traces-'+ str(b.shape[1]) + number + '.png'
+                print(png_name)
+                N += 1
             exporter.export(png_name)
             print( "\n Picture exported as", png_name)
-    
-            self.n += 1
+
+
 
         if what == "images":
             header = "Counts in Roi"+"    "+"Background (normalize by roisize)"+"    "+"Wever contrast"
@@ -1037,11 +1081,23 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 b = self.intensitys
                 c = self.morgane
 
-            intensities_name = Custom_name  + 'intensities' + str(len(b))+"(" + str(self.n)+")"+ '.txt'
+            intensities_name = self.custom_name  + 'intensities' + str(len(b))+number+ '.txt'
+            while os.path.isfile(png_name):
+                print(png_name)
+                number = "("+ str(N) +")"
+                intensities_name = self.custom_name  + 'intensities' + str(len(b))+number+ '.txt'
+                print(png_name)
+                N += 1
             np.savetxt(intensities_name, b, delimiter="    ", newline='\r\n')
             print("\n", len(b), "Intensities exported as", intensities_name)
 
-            intensities_morgane_name = Custom_name  + 'intensities_morgane' + str(len(c))+"(" + str(self.n)+")"+ '.txt'
+            intensities_morgane_name = self.custom_name  + 'intensities_morgane' + str(len(c))+number+ '.txt'
+            while os.path.isfile(png_name):
+                print(png_name)
+                number = "("+ str(N) +")"
+                intensities_morgane_name = self.custom_name  + 'intensities_morgane' + str(len(c))+number+ '.txt'
+                print(png_name)
+                N += 1
             np.savetxt(intensities_morgane_name, c, delimiter="    ", newline='\r\n', header=header)
             print("\n", len(c), "Intensities exported as", intensities_morgane_name)
 
@@ -1052,11 +1108,15 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             exporter.params.param('width').setValue(width, blockSignal=exporter.widthChanged)
             exporter.params.param('height').setValue(height, blockSignal=exporter.heightChanged)
 
-            png_name = Custom_name  + 'Image_intensities'+ str(len(b))+"(" + str(self.n)+")" + '.png'
+            png_name = self.custom_name  + 'Image_intensities'+ str(len(b))+number+ '.png'
+            while os.path.isfile(png_name):
+                print(png_name)
+                number = "("+ str(N) +")"
+                png_name = self.custom_name  + 'Image_intensities'+ str(len(b))+number+ '.png'
+                print(png_name)
+                N += 1
             exporter.export(png_name)
             print( "\n Picture exported as", png_name)
-            
-            self.n += 1
 
 # %% out of program
     def automatic_crazy_start(self): # connected to crazy go (crazyStepButton)
