@@ -1028,6 +1028,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         N = 0
         number = ""
+        self.custom_name  = str(self.edit_save.text()) + "_"
 
         if what == "trace":
             b = self.traces
@@ -1082,21 +1083,21 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 c = self.morgane
 
             intensities_name = self.custom_name  + 'intensities' + str(len(b))+number+ '.txt'
-            while os.path.isfile(png_name):
-                print(png_name)
+            while os.path.isfile(intensities_name):
+                print(intensities_name)
                 number = "("+ str(N) +")"
                 intensities_name = self.custom_name  + 'intensities' + str(len(b))+number+ '.txt'
-                print(png_name)
+                print(intensities_name)
                 N += 1
             np.savetxt(intensities_name, b, delimiter="    ", newline='\r\n')
             print("\n", len(b), "Intensities exported as", intensities_name)
 
             intensities_morgane_name = self.custom_name  + 'intensities_morgane' + str(len(c))+number+ '.txt'
-            while os.path.isfile(png_name):
-                print(png_name)
+            while os.path.isfile(intensities_morgane_name):
+                print(intensities_morgane_name)
                 number = "("+ str(N) +")"
                 intensities_morgane_name = self.custom_name  + 'intensities_morgane' + str(len(c))+number+ '.txt'
-                print(png_name)
+                print(intensities_morgane_name)
                 N += 1
             np.savetxt(intensities_morgane_name, c, delimiter="    ", newline='\r\n', header=header)
             print("\n", len(c), "Intensities exported as", intensities_morgane_name)
