@@ -153,14 +153,14 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.maxThreshLabel = QtGui.QLabel('Threshold:')
         self.maxThreshEdit = QtGui.QLineEdit('0')
         self.moleculeSizeLabel = QtGui.QLabel('Size (pix):')
-        self.moleculeSizeEdit = QtGui.QLineEdit('9')
+        self.moleculeSizeEdit = QtGui.QLineEdit('11')
         self.channelDifferenceLabel = QtGui.QLabel('Channel height difference (pixels):')
         self.channelDifferenceEdit = QtGui.QLineEdit('0')
         self.channelCorrectionLabel = QtGui.QLabel('Secondary Channel Correction:')
         self.channelCorrectionEdit = QtGui.QLineEdit('0')
 
         self.BgSizeLabel = QtGui.QLabel('BackGround (size + 2N)')
-        self.BgSizeEdit = QtGui.QLineEdit('2')
+        self.BgSizeEdit = QtGui.QLineEdit('3')
         self.BgSizeEdit.setFixedWidth(30)
 
         self.time_adquisitionLabel = QtGui.QLabel('Adquisition time (ms)')
@@ -273,6 +273,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.automatic_crazytimer.timeout.connect(self.automatic_crazy)
 
         self.see_labels_button.clicked.connect(self.see_labels)
+        self.see_labels_button.setChecked(True)
 
 #        # DOCK cosas, mas comodo!
         self.state = None  # defines the docks state (personalize your oun UI!)
@@ -373,8 +374,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                     "QPushButton { background-color: rgb(10, 30, 10); }")
                 self.total_size = [self.data.shape[1], self.data.shape[0]]
 
-                self.maxDistEdit.setText("60")
-                self.moleculeSizeEdit.setText("90")
+#                self.maxDistEdit.setText("60")
+#                self.moleculeSizeEdit.setText("90")
                 self.maxThreshEdit.setText(str(np.mean(self.data[:,:])))
                 self.mean = self.data
 
@@ -385,8 +386,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 self.axes = (1,2)  # axe 0 are the frames
                 self.total_size = [self.data.shape[2], self.data.shape[1]]
 
-                self.maxDistEdit.setText("6")
-                self.moleculeSizeEdit.setText("9")
+#                self.maxDistEdit.setText("6")
+#                self.moleculeSizeEdit.setText("9")
                 self.maxThreshEdit.setText(str(np.mean(self.data[1,:,:])))
 
 
@@ -602,8 +603,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         elif not self.is_image:
             self.btn7.setText("Intensities from frame={}".format(int(self.meanStartEdit.text())))
-        
-        self.see_labels_button.setChecked(True)
+
+
 
     def update_size_rois(self):
         roiSize = (int(self.moleculeSizeEdit.text()))
@@ -611,6 +612,10 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         center = ((roiSize - self.roiSize[0])/2) * np.array([1, 1])
         centerbg = int(self.BgSizeEdit.text()) * np.array([1, 1])
 
+        try:
+            self.smallroi.setSize(roiSize, roiSize)
+        except:
+            pass
         try:
             for i in range(len(self.molRoi)):
                 if i not in self.removerois:
@@ -1032,12 +1037,12 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         if what == "trace":
             b = self.traces
-            trace_name = self.custom_name  + 'traces'+ str(b.shape[1])+ number +'.txt'
+            trace_name = self.custom_name  + 'traces-'+ str(b.shape[1])+ number +'.txt'
             while os.path.isfile(trace_name):
-                print(trace_name)
+#                print(trace_name)
                 number = "("+ str(N) +")"
-                trace_name = self.custom_name  + 'traces'+ str(b.shape[1])+ number +'.txt'
-                print(trace_name)
+                trace_name = self.custom_name  + 'traces-'+ str(b.shape[1])+ number +'.txt'
+#                print(trace_name)
                 N += 1
             np.savetxt(trace_name, b, delimiter="    ", newline='\r\n')
             print("\n", b.shape[1],"Traces exported as", trace_name)
@@ -1045,10 +1050,10 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             c = self.traces_bg
             trace_bg_name = self.custom_name  + 'traces_background-'+ str(c.shape[1]) + number +'.txt'
             while os.path.isfile(trace_bg_name):
-                print(trace_bg_name)
+#                print(trace_bg_name)
                 number = "("+ str(N) +")"
                 trace_bg_name = self.custom_name  + 'traces_background-'+ str(c.shape[1]) + number +'.txt'
-                print(trace_bg_name)
+#                print(trace_bg_name)
                 N += 1
 
             np.savetxt(trace_bg_name, c, delimiter="    ", newline='\r\n')
@@ -1063,10 +1068,10 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
             png_name = self.custom_name  + 'Image_traces-'+ str(b.shape[1]) + number + '.png'
             while os.path.isfile(png_name):
-                print(png_name)
+#                print(png_name)
                 number = "("+ str(N) +")"
                 png_name = self.custom_name  + 'Image_traces-'+ str(b.shape[1]) + number + '.png'
-                print(png_name)
+#                print(png_name)
                 N += 1
             exporter.export(png_name)
             print( "\n Picture exported as", png_name)
@@ -1082,22 +1087,22 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 b = self.intensitys
                 c = self.morgane
 
-            intensities_name = self.custom_name  + 'intensities' + str(len(b))+number+ '.txt'
+            intensities_name = self.custom_name  + 'intensities-' + str(len(b))+number+ '.txt'
             while os.path.isfile(intensities_name):
-                print(intensities_name)
+#                print(intensities_name)
                 number = "("+ str(N) +")"
-                intensities_name = self.custom_name  + 'intensities' + str(len(b))+number+ '.txt'
-                print(intensities_name)
+                intensities_name = self.custom_name  + 'intensities-' + str(len(b))+number+ '.txt'
+#                print(intensities_name)
                 N += 1
             np.savetxt(intensities_name, b, delimiter="    ", newline='\r\n')
             print("\n", len(b), "Intensities exported as", intensities_name)
 
-            intensities_morgane_name = self.custom_name  + 'intensities_morgane' + str(len(c))+number+ '.txt'
+            intensities_morgane_name = self.custom_name  + 'intensities_morgane-' + str(len(c))+number+ '.txt'
             while os.path.isfile(intensities_morgane_name):
-                print(intensities_morgane_name)
+#                print(intensities_morgane_name)
                 number = "("+ str(N) +")"
-                intensities_morgane_name = self.custom_name  + 'intensities_morgane' + str(len(c))+number+ '.txt'
-                print(intensities_morgane_name)
+                intensities_morgane_name = self.custom_name  + 'intensities_morgane-' + str(len(c))+number+ '.txt'
+#                print(intensities_morgane_name)
                 N += 1
             np.savetxt(intensities_morgane_name, c, delimiter="    ", newline='\r\n', header=header)
             print("\n", len(c), "Intensities exported as", intensities_morgane_name)
@@ -1109,12 +1114,12 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             exporter.params.param('width').setValue(width, blockSignal=exporter.widthChanged)
             exporter.params.param('height').setValue(height, blockSignal=exporter.heightChanged)
 
-            png_name = self.custom_name  + 'Image_intensities'+ str(len(b))+number+ '.png'
+            png_name = self.custom_name  + 'Image_intensities-'+ str(len(b))+number+ '.png'
             while os.path.isfile(png_name):
-                print(png_name)
+#                print(png_name)
                 number = "("+ str(N) +")"
-                png_name = self.custom_name  + 'Image_intensities'+ str(len(b))+number+ '.png'
-                print(png_name)
+                png_name = self.custom_name  + 'Image_intensities-'+ str(len(b))+number+ '.png'
+#                print(png_name)
                 N += 1
             exporter.export(png_name)
             print( "\n Picture exported as", png_name)
@@ -1168,7 +1173,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             self.morgane2 = self.morgane
         self.doit()
         self.histo_data = True
-        self.btn7.setText("Export all histogram data ({})".format(len(self.intensitys2)))
+        if not self.is_trace:
+            self.btn7.setText("Export all histogram data ({})".format(len(self.intensitys2)))
 
 
     def doit(self):  # from make_histogram
@@ -1187,7 +1193,8 @@ class MyPopup_histogram(QtGui.QWidget):
         self.main.intensitys2 = None
         self.main.morgane2 = None
         self.main.histo_data = False
-        self.main.btn7.setText("Export only last ({}) points".format(len(self.main.intensitys)))
+        if not self.main.is_trace:
+            self.main.btn7.setText("Export only last ({}) points".format(len(self.main.intensitys)))
         
     def __init__(self, main, *args, **kwargs):  # when doit do w2.show()
         """this is the initialize of this new windows. Make the new
