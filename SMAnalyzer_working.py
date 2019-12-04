@@ -106,6 +106,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         # Create ImageView
         self.imv = pg.ImageView()
 
+        self.trace_widget = pg.GraphicsLayoutWidget()
+
         # Create buttons
         self.btn1 = QtGui.QPushButton('Load Image')
         self.btn2 = QtGui.QPushButton('Create ROI')
@@ -135,13 +137,16 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         # labels with a fixed width
         self.gauss_fit_label = QtGui.QLabel('sigma_X / sigma_Y ><')
         self.gauss_fit_edit = QtGui.QLineEdit('1.2')
-        self.gauss_fit_edit.setFixedWidth(30)
-        
+        self.gauss_fit_edit.setFixedWidth(60)
+
         self.btn_histogram = QtGui.QPushButton('Make Histogram')
+        self.btn_save_histogram = QtGui.QPushButton('Save Histogram')
+        self.btn_save_histogram.setStyleSheet(
+                "QPushButton { background-color: rgb(192, 192, 192); }")
 
         self.crazyStepButton = QtGui.QPushButton('Crazy go')
         self.crazyStepEdit = QtGui.QLineEdit('10')
-        self.crazyStepEdit.setFixedWidth(30)
+        self.crazyStepEdit.setFixedWidth(40)
 
         # Create parameter fields with labels
         self.meanStartLabel = QtGui.QLabel('Start frame:')
@@ -184,6 +189,10 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.viewer_grid = QtGui.QGridLayout()
         self.viewer_wid = QtGui.QWidget()
         self.viewer_wid.setLayout(self.viewer_grid)
+
+        self.trace_grid = QtGui.QGridLayout()
+        self.trace_wid = QtGui.QWidget()
+        self.trace_wid.setLayout(self.trace_grid)
 
         self.options_grid = QtGui.QGridLayout()
         self.optios_wid = QtGui.QWidget()
@@ -228,19 +237,22 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.options_grid.addWidget(self.btn7,              15, 0, 1, 3)
 
 
-        self.viewer_grid.addWidget(self.label_save,         0, 4, 1, 5)
+        self.viewer_grid.addWidget(self.label_save,          0, 4, 1, 5)
         self.viewer_grid.addWidget(self.edit_save,          0, 9, 1, 10)
 
-        self.viewer_grid.addWidget(self.imv,              1, 4, 16, 16)
-        
+        self.viewer_grid.addWidget(self.imv,               1, 4, 16, 16)
 
-        self.post_grid.addWidget(self.see_labels_button, 3, 25, 1, 2)
-        self.post_grid.addWidget(self.btn_small_roi,     4, 25, 1, 1)
-        self.post_grid.addWidget(self.gauss_fit_label,   5, 25, 1, 1)
-        self.post_grid.addWidget(self.gauss_fit_edit,    5, 26, 1, 1)
-        self.post_grid.addWidget(self.btn_gauss_fit,     6, 25, 1, 2)
-        self.post_grid.addWidget(self.btn_filter_bg,     8, 25, 1, 2)
-        self.post_grid.addWidget(self.btn_histogram,    10, 25, 1, 2)
+        self.trace_grid.addWidget(self.trace_widget,      1, 4, 6, 6)
+
+        self.post_grid.addWidget(self.see_labels_button,   3, 25, 1, 2)
+        self.post_grid.addWidget(self.btn_small_roi,       4, 25, 1, 1)
+        self.post_grid.addWidget(self.gauss_fit_label,     5, 25, 1, 1)
+        self.post_grid.addWidget(self.gauss_fit_edit,      5, 26, 1, 1)
+        self.post_grid.addWidget(self.btn_gauss_fit,       6, 25, 1, 2)
+        self.post_grid.addWidget(self.btn_filter_bg,       8, 25, 1, 2)
+        self.post_grid.addWidget(self.btn_histogram,      10, 25, 1, 2)
+        self.post_grid.addWidget(self.btn_save_histogram, 11, 25, 1, 1)
+
         self.post_grid.addWidget(self.crazyStepEdit,    12, 26, 1, 1)
         self.post_grid.addWidget(self.crazyStepButton,  12, 25, 1, 1)
 
@@ -258,6 +270,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.btn_gauss_fit.clicked.connect(self.gaussian_fit_ROI)
         self.btn_filter_bg.clicked.connect(self.filter_bg)
         self.btn_histogram.clicked.connect(self.make_histogram)
+        self.btn_save_histogram.clicked.connect(self.save_histogram)
         self.crazyStepButton.clicked.connect(self.automatic_crazy_start)
         
         self.btn99_clearall.clicked.connect(self.clear_all)
@@ -301,6 +314,12 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         optionsDock.addWidget(self.optios_wid)
         self.dockArea.addDock(optionsDock, "left", viewDock)
 
+        traceDock = Dock('Small scan', size=(1, 1))
+        traceDock.addWidget(self.trace_wid)
+        self.dockArea.addDock(traceDock, "bottom", postDock)
+
+#'bottom', 'top', 'left', 'right', 'above', or 'below'
+
         self.setWindowTitle("Single Molecule Analizer")  # Nombre de la ventana
         self.setGeometry(10, 40, 1600, 800)  # (PosX, PosY, SizeX, SizeY)
 
@@ -339,6 +358,13 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         QtGui.QShortcut(
             QtGui.QKeySequence('ctrl+g'), self, self.gaussian_fit_ROI)
 
+        self.bad_selection_Action = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('ctrl+l'), self, self.see_labels)
+
+        self.bad_selection_Action = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('ctrl+h'), self, self.make_histogram)
 
     def importImage(self):  # connected to Load Image (btn1)
         """Select a file to analyse, can be a tif or jpg(on progres)
@@ -672,11 +698,10 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 #        self.w.setWindowTitle('SMAnalyzer - ROI Mean - ' + self.f)
         self.imv.view.removeItem(self.roi)
 
-
     def create_small_ROI(self):  # connected to New small Roi (btn_small_roi)
         """ creates a new green roi at (0,0) position. then you move it
         and click on it to add rois at your analysis"""
-        
+
         if self.smallroi is not None:  # only want one
             self.meanEndEdit.setStyleSheet(" background-color: ; ")
             self.imv.view.scene().removeItem(self.smallroi)
@@ -692,8 +717,27 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             self.smallroi.sigRemoveRequested.connect(self.remove_small_ROI)
             self.smallroi.setAcceptedMouseButtons(QtCore.Qt.LeftButton)
             self.smallroi.sigClicked.connect(self.small_ROI_to_new_ROI)
+            if not self.JPG:
+                self.smallroi.sigRegionChanged.connect(self.making_traces)
         except:
             pass
+
+    def making_traces(self):
+        if not self.JPG:
+            try:
+                self.trace_widget.removeItem(self.p2)
+            except:
+                pass
+
+            moltrace = self.smallroi.getArrayRegion(self.data, self.imv.imageItem,
+                                                        axes=(1,2),
+                                                        returnMappedCoords=False)
+            print("moltrace shape ", moltrace.shape)
+            print(moltrace[1:10,0,0])
+            self.p2 = self.trace_widget.addPlot(row=2, col=1, title="Trace")
+            valor = np.sum(moltrace, axis=(1,2))/ float(self.time_adquisitionEdit.text())
+            self.p2.plot(np.linspace(0,moltrace.shape[0],moltrace.shape[0]), valor)
+            self.p2.showGrid(x=True, y=True)
 
     def remove_small_ROI(self, evt):  # rigth click to delete the new small roi.
         self.imv.view.scene().removeItem(evt)
@@ -923,6 +967,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         bgArray = dict()
         bg = dict()
         bgNorm = dict()
+        self.raw_data = dict()
 
 #        s = (2*int(self.BgSizeEdit.text()))  # bgsize = molsize + s
         p=0
@@ -950,21 +995,26 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 bgNorm[i] = (n*n)*(bg[i]) / (m*m - n*n)
                                 
                 self.trace[p] = (np.sum(molArray[i], axis=self.axes) - bgNorm[i]) / float(self.time_adquisitionEdit.text())
-                self.trace_bg[p] = bgNorm[i]
+                self.trace_bg[p] = bgNorm[i] / float(self.time_adquisitionEdit.text())
+                self.raw_data[p] = np.sum(molArray[i], axis=(1,2)) / float(self.time_adquisitionEdit.text())
                 p +=1 # I have to use this to have order because of removerois
 
         # Save traces as an array
         a = []
         a_bg = []
+        a_raw = []
         for p in range(len(self.trace)):
             a.append(self.trace[p])
             a_bg.append(self.trace_bg[p])
+            a_raw.append(self.raw_data[p])
 
         b = np.array(a).T
         c = np.array(a_bg).T
+        d = np.array(a_raw).T
         print("len traces", len(b))
         self.traces = b
         self.traces_bg = c
+        self.traces_raw = d
 
     def calculate_images(self):# from exportTraces_or_images (<- btn7 call it)
         """ calculate the traces to save.
@@ -1058,6 +1108,15 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
             np.savetxt(trace_bg_name, c, delimiter="    ", newline='\r\n')
             print("\n", c.shape[1],"Traces exported as", trace_bg_name)
+
+            d = self.traces_raw
+            trace_raw_name = self.custom_name  + 'traces_raw-'+ str(d.shape[1]) + number +'.txt'
+            while os.path.isfile(trace_raw_name):
+                number = "("+ str(N) +")"
+                trace_raw_name = self.custom_name  + 'traces_raw-'+ str(d.shape[1]) + number +'.txt'
+                N += 1
+            np.savetxt(trace_raw_name, d, delimiter="    ", newline='\r\n')
+            print("\n", d.shape[1],"Traces exported as", trace_raw_name)
 
             ratio = self.mean.shape[1]/self.mean.shape[0]
             height = int(1920)
@@ -1155,6 +1214,29 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             print(" automatic analysis finished")
 
 # %% for the new windows.
+
+    def save_histogram(self):
+        print("data from histogram Saved")
+        try:
+            h = self.intensitys2
+            print("intensitys2")
+        except:
+            h = self.intensitys
+            print("Solo los ultimos puntos EXCEPT")
+
+        N = 0
+        number = ""
+        self.custom_name  = str(self.edit_save.text()) + "_"
+
+        histo_file_name = self.custom_name  + 'histogram-' + str(len(h))+number+ '.txt'
+        while os.path.isfile(histo_file_name):
+            number = "("+ str(N) +")"
+            histo_file_name = self.custom_name  + 'histogram-' + str(len(h))+number+ '.txt'
+#                print(intensities_morgane_name)
+            N += 1
+        np.savetxt(histo_file_name, h, delimiter="    ", newline='\r\n')
+        print("\n", len(h), "Histogram exported as", histo_file_name)
+
     def make_histogram(self):  # connected to make histogram (btn_histogram)
         """Prepare to make the histogram with all the spots detected.
         It opens a new window to run in another thread and  make it easy.
