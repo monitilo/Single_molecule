@@ -106,7 +106,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         # Create ImageView
         self.imv = pg.ImageView()
 
-        self.trace_widget = pg.GraphicsLayoutWidget()
+        self.trace_widget = pg.PlotWidget()#pg.GraphicsLayoutWidget()
 
         # Create buttons
         self.btn1 = QtGui.QPushButton('Load Image')
@@ -314,7 +314,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         optionsDock.addWidget(self.optios_wid)
         self.dockArea.addDock(optionsDock, "left", viewDock)
 
-        traceDock = Dock('Small scan', size=(1, 1))
+        traceDock = Dock('Live Trace', size=(1, 1))
         traceDock.addWidget(self.trace_wid)
         self.dockArea.addDock(traceDock, "bottom", postDock)
 
@@ -567,7 +567,11 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             print("is JPG")
         else:
             if self.roi == None:
+                print("no trace no jpg, no roi")
                 self.mean = self.data[self.imv.currentIndex,:,:]
+            else:
+                self.mean = self.cuted[self.imv.currentIndex,:,:]
+                print("in a cuted ROI (no trace or jpg)")
 
         # find the local peaks
         self.maximacoord = peak_local_max(self.mean, min_distance=self.dist, threshold_abs=self.threshold)
@@ -691,9 +695,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         if its a JPG only have one option"""
 
         z = self.roi.getArrayRegion(self.data, self.imv.imageItem, axes=self.axes)
-        self.mean = z
-        
-        plot_with_colorbar(self.imv, self.mean)
+        self.cuted = z
+
+        plot_with_colorbar(self.imv, self.cuted)
 
 #        self.w.setWindowTitle('SMAnalyzer - ROI Mean - ' + self.f)
         self.imv.view.removeItem(self.roi)
@@ -725,19 +729,41 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
     def making_traces(self):
         if not self.JPG:
             try:
-                self.trace_widget.removeItem(self.p2)
-            except:
-                pass
-
-            moltrace = self.smallroi.getArrayRegion(self.data, self.imv.imageItem,
+#                self.trace_widget.removeItem(self.p2)
+                print("hasta aca anda")
+                moltrace = self.smallroi.getArrayRegion(self.data,
+                                                        self.imv.imageItem,
                                                         axes=(1,2),
                                                         returnMappedCoords=False)
-            print("moltrace shape ", moltrace.shape)
-            print(moltrace[1:10,0,0])
-            self.p2 = self.trace_widget.addPlot(row=2, col=1, title="Trace")
-            valor = np.sum(moltrace, axis=(1,2))/ float(self.time_adquisitionEdit.text())
-            self.p2.plot(np.linspace(0,moltrace.shape[0],moltrace.shape[0]), valor)
-            self.p2.showGrid(x=True, y=True)
+
+                valor = np.sum(moltrace, axis=(1,2)) / float(self.time_adquisitionEdit.text())
+                print("creo la linea")
+                self.trace_widget.setData(np.linspace(0,moltrace.shape[0],int(moltrace.shape[0])),
+                                            valor,
+                                            pen=pg.mkPen('y', width=1),
+                                            shadowPen=pg.mkPen('w', width=3))
+                print("la agrego ya")
+                self.frame_line.setPos(int(self.meanStartEdit.text()))
+
+            except:
+#                self.p2 = self.trace_widget.addPlot(row=2, col=1, title="Trace")
+                self.trace_widget.plot(open='y')
+                self.trace_widget.showGrid(x=True, y=True)
+
+                self.frame_line = pg.InfiniteLine(angle=90,
+                                              movable=True,
+                                              pen=pg.mkPen(color=(60,60,255),
+                                              width=2))
+
+                self.trace_widget.addItem(self.frame_line)
+
+                self.frame_line.sigPositionChanged.connect(self.moving_frame)
+
+    def moving_frame(self):
+        frame = self.frame_line.pos()
+        self.meanStartEdit.setText(str(frame))
+        self.update_image()
+        self.indexChanged()
 
     def remove_small_ROI(self, evt):  # rigth click to delete the new small roi.
         self.imv.view.scene().removeItem(evt)
@@ -800,6 +826,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             if i not in self.removerois:
                 self.label[i].setText(text=str(p))
                 p+=1
+
 
     def see_labels(self):
         self.relabel_new_ROI()
