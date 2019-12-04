@@ -106,7 +106,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         # Create ImageView
         self.imv = pg.ImageView()
 
-        self.trace_widget = pg.PlotWidget()#pg.GraphicsLayoutWidget()
+        self.trace_widget = pg.GraphicsLayoutWidget()
 
         # Create buttons
         self.btn1 = QtGui.QPushButton('Load Image')
@@ -436,11 +436,19 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
     def update_image(self):  # Put the start frame in the image when change the number
         self.imv.setCurrentIndex(int(self.meanStartEdit.text()))
+        try:
+            self.frame_line.setPos(int(self.meanStartEdit.text()))
+        except:
+            pass
 
     def indexChanged(self):  #connected to the slide in the img
         """ change the numbers of start and endig frame  when move the slide"""
         self.meanStartEdit.setText(str((self.imv.currentIndex)))
         self.meanEndEdit.setText(str(int(self.imv.currentIndex)+15))
+        try:
+            self.frame_line.setPos(int(self.meanStartEdit.text()))
+        except:
+            pass
 
     def createROI(self):  # connected to Create ROI (btn2)
         """ create a big ROI to select the area to make the analysis
@@ -730,37 +738,39 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         if not self.JPG:
             try:
 #                self.trace_widget.removeItem(self.p2)
-                print("hasta aca anda")
+
                 moltrace = self.smallroi.getArrayRegion(self.data,
                                                         self.imv.imageItem,
                                                         axes=(1,2),
                                                         returnMappedCoords=False)
 
                 valor = np.sum(moltrace, axis=(1,2)) / float(self.time_adquisitionEdit.text())
-                print("creo la linea")
-                self.trace_widget.setData(np.linspace(0,moltrace.shape[0],int(moltrace.shape[0])),
+                print("algo de esto no anda")
+                self.curve.setData(np.linspace(0,moltrace.shape[0],moltrace.shape[0]),
                                             valor,
-                                            pen=pg.mkPen('y', width=1),
+                                            pen=pg.mkPen(color='y', width=1),
                                             shadowPen=pg.mkPen('w', width=3))
-                print("la agrego ya")
+                print("algo de esto no anda222222")
                 self.frame_line.setPos(int(self.meanStartEdit.text()))
+                print("algo de esto no anda3333")
 
             except:
-#                self.p2 = self.trace_widget.addPlot(row=2, col=1, title="Trace")
-                self.trace_widget.plot(open='y')
-                self.trace_widget.showGrid(x=True, y=True)
-
+                self.p2 = self.trace_widget.addPlot(row=2, col=1, title="Trace")
+                self.p2.showGrid(x=True, y=True)
+                self.curve = self.p2.plot(open='y')
                 self.frame_line = pg.InfiniteLine(angle=90,
                                               movable=True,
-                                              pen=pg.mkPen(color=(60,60,255),
+                                              pen=pg.mkPen(color=(60,60,200),
                                               width=2))
-
-                self.trace_widget.addItem(self.frame_line)
-
+                print("hasta aca anda")
+                self.p2.addItem(self.frame_line)
+                print("hasta aca anda222")
                 self.frame_line.sigPositionChanged.connect(self.moving_frame)
+                print("hasta aca anda33333")
 
     def moving_frame(self):
-        frame = self.frame_line.pos()
+        frame = int(self.frame_line.pos()[0])
+        print("frame", frame)
         self.meanStartEdit.setText(str(frame))
         self.update_image()
         self.indexChanged()
