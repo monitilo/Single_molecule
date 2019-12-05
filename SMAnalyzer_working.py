@@ -586,7 +586,6 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         if self.is_trace:
             print("is trace")
         elif self.JPG:
-            self.mean = self.cuted
             print("is JPG")
         else:
             if self.roi == None:
@@ -718,11 +717,12 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         if its a JPG only have one option"""
 
         z = self.roi.getArrayRegion(self.data, self.imv.imageItem, axes=self.axes)
-        self.cuted = z
+        if self.JPG:
+            self.mean = z
+        else:
+            self.cuted = z
+        plot_with_colorbar(self.imv, z)
 
-        plot_with_colorbar(self.imv, self.cuted)
-
-#        self.w.setWindowTitle('SMAnalyzer - ROI Mean - ' + self.f)
         self.imv.view.removeItem(self.roi)
 
     def create_small_ROI(self):  # connected to New small Roi (btn_small_roi)
