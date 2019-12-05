@@ -131,9 +131,17 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.btn_small_roi = QtGui.QPushButton('New small ROI')
         self.btn_small_roi.setStyleSheet(
                 "QPushButton { background-color: rgb(150, 200, 10); }")
-        self.btn_gauss_fit = QtGui.QPushButton('Gaussian Fit')
-        self.btn_filter_bg = QtGui.QPushButton('Filter bg')
-        
+
+        self.btn_gauss_fit = QtGui.QPushButton('Gaussian Fit (ctrl+g)')
+        self.btn_gauss_fit.setStyleSheet(
+                "QPushButton { background-color: rgb(202,0,202); }")
+
+        self.btn_filter_bg = QtGui.QPushButton('Filter bg (ctrl+b)')
+
+        self.btn_nospot_filter = QtGui.QPushButton('filter no spot (ctrl+n)')
+        self.btn_nospot_filter.setStyleSheet(
+                "QPushButton { background-color: rgb(72,209,204); }")
+
         # labels with a fixed width
         self.gauss_fit_label = QtGui.QLabel('sigma_X / sigma_Y ><')
         self.gauss_fit_edit = QtGui.QLineEdit('1.2')
@@ -171,7 +179,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.time_adquisitionLabel = QtGui.QLabel('Adquisition time (ms)')
         self.time_adquisitionEdit = QtGui.QLineEdit('100')
 
-        self.see_labels_button = QtGui.QCheckBox('Labels?')
+        self.see_labels_button = QtGui.QCheckBox('Labels? (ctrl+a)')
         self.see_labels_button.setChecked(True)
 
 
@@ -250,11 +258,12 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.post_grid.addWidget(self.gauss_fit_edit,      5, 26, 1, 1)
         self.post_grid.addWidget(self.btn_gauss_fit,       6, 25, 1, 2)
         self.post_grid.addWidget(self.btn_filter_bg,       8, 25, 1, 2)
-        self.post_grid.addWidget(self.btn_histogram,      10, 25, 1, 2)
-        self.post_grid.addWidget(self.btn_save_histogram, 11, 25, 1, 1)
+        self.post_grid.addWidget(self.btn_nospot_filter,   10, 25, 1, 2)
+        self.post_grid.addWidget(self.btn_histogram,      12, 25, 1, 2)
+        self.post_grid.addWidget(self.btn_save_histogram, 13, 25, 1, 1)
 
-        self.post_grid.addWidget(self.crazyStepEdit,    12, 26, 1, 1)
-        self.post_grid.addWidget(self.crazyStepButton,  12, 25, 1, 1)
+        self.post_grid.addWidget(self.crazyStepEdit,    14, 26, 1, 1)
+        self.post_grid.addWidget(self.crazyStepButton,  14, 25, 1, 1)
 
         # button actions
         self.btn1.clicked.connect(self.importImage)
@@ -269,6 +278,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.btn_small_roi.clicked.connect(self.create_small_ROI)
         self.btn_gauss_fit.clicked.connect(self.gaussian_fit_ROI)
         self.btn_filter_bg.clicked.connect(self.filter_bg)
+        self.btn_nospot_filter.clicked.connect(self.filter_nospot)
         self.btn_histogram.clicked.connect(self.make_histogram)
         self.btn_save_histogram.clicked.connect(self.save_histogram)
         self.crazyStepButton.clicked.connect(self.automatic_crazy_start)
@@ -314,7 +324,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         optionsDock.addWidget(self.optios_wid)
         self.dockArea.addDock(optionsDock, "left", viewDock)
 
-        traceDock = Dock('Live Trace', size=(1, 1))
+        traceDock = Dock('Live Trace', size=(100, 10))
         traceDock.addWidget(self.trace_wid)
         self.dockArea.addDock(traceDock, "bottom", postDock)
 
@@ -350,19 +360,23 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.is_trace = False
 
     # Shortcuts
-        self.good_selection_Action = QtGui.QAction(self)
+        self.bgfilter_Action = QtGui.QAction(self)
         QtGui.QShortcut(
             QtGui.QKeySequence('ctrl+b'), self, self.filter_bg)
 
-        self.bad_selection_Action = QtGui.QAction(self)
+        self.gaussfilter_Action = QtGui.QAction(self)
         QtGui.QShortcut(
             QtGui.QKeySequence('ctrl+g'), self, self.gaussian_fit_ROI)
 
-        self.bad_selection_Action = QtGui.QAction(self)
+        self.nonspotfilter_Action = QtGui.QAction(self)
         QtGui.QShortcut(
-            QtGui.QKeySequence('ctrl+l'), self, self.see_labels)
+            QtGui.QKeySequence('ctrl+n'), self, self.filter_nospot)
 
-        self.bad_selection_Action = QtGui.QAction(self)
+        self.seelabels_Action = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('ctrl+a'), self, self.see_labels)
+
+        self.makehistogram_Action = QtGui.QAction(self)
         QtGui.QShortcut(
             QtGui.QKeySequence('ctrl+h'), self, self.make_histogram)
 
@@ -572,6 +586,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         if self.is_trace:
             print("is trace")
         elif self.JPG:
+            self.mean = self.cuted
             print("is JPG")
         else:
             if self.roi == None:
@@ -737,22 +752,17 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
     def making_traces(self):
         if not self.JPG:
             try:
-#                self.trace_widget.removeItem(self.p2)
-
                 moltrace = self.smallroi.getArrayRegion(self.data,
                                                         self.imv.imageItem,
                                                         axes=(1,2),
                                                         returnMappedCoords=False)
 
                 valor = np.sum(moltrace, axis=(1,2)) / float(self.time_adquisitionEdit.text())
-                print("algo de esto no anda")
                 self.curve.setData(np.linspace(0,moltrace.shape[0],moltrace.shape[0]),
                                             valor,
                                             pen=pg.mkPen(color='y', width=1),
                                             shadowPen=pg.mkPen('w', width=3))
-                print("algo de esto no anda222222")
                 self.frame_line.setPos(int(self.meanStartEdit.text()))
-                print("algo de esto no anda3333")
 
             except:
                 self.p2 = self.trace_widget.addPlot(row=2, col=1, title="Trace")
@@ -762,15 +772,11 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                                               movable=True,
                                               pen=pg.mkPen(color=(60,60,200),
                                               width=2))
-                print("hasta aca anda")
                 self.p2.addItem(self.frame_line)
-                print("hasta aca anda222")
                 self.frame_line.sigPositionChanged.connect(self.moving_frame)
-                print("hasta aca anda33333")
 
     def moving_frame(self):
         frame = int(self.frame_line.pos()[0])
-        print("frame", frame)
         self.meanStartEdit.setText(str(frame))
         self.update_image()
         self.indexChanged()
@@ -880,7 +886,37 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                             a+=1
 
 
-        print("badBg/total=", a,"/", len(self.molRoi))
+        print("filter bg: bad/total=", a,"/", len(self.molRoi))
+
+    def filter_nospot(self):
+        molArray = dict()
+        bgArray = dict()
+#        bg = dict()
+        a = 0
+#        roiSize = (int(self.moleculeSizeEdit.text()))
+#        bgsize = 2* int(self.BgSizeEdit.text()) + roiSize
+        for i in range(len(self.molRoi)): #np.arange(0, self.maxnumber):
+            if i not in self.removerois:
+                molArray[i] = self.molRoi[i].getArrayRegion(self.mean, self.imv.imageItem)
+                bgArray[i] = self.bgRoi[i].getArrayRegion(self.mean, self.imv.imageItem)
+
+#                molnumber = np.sum(molArray[i]) / (roiSize**2)
+#                print("a mano vs mean array", molnumber, np.mean(molArray[i]))
+#                bgnumber = np.sum(bgArray[i]) / (bgsize**2)
+#                print("a mano vs mean bg", bgnumber, np.mean(bgArray[i]))
+
+#                bg[i] = np.sum(bgArray[i]) - np.sum(molArray[i])
+
+# if the average inside is smaller than outside is deleted
+# I choose to take 1.5 % bigger outside, for the cases too similar
+
+                if np.mean(bgArray[i])*1.0 >= np.mean(molArray[i]):
+                    self.molRoi[i].setPen('c')
+                    self.bgRoi[i].setPen('c')
+                    self.removerois.append(i)
+                    a+=1
+
+        print("filter no spots: bad/total=", a,"/", len(self.molRoi))
 
     def gaussian_fit_ROI(self):  # connect to gaussian fit (btn_gauss_fit)
         """For each not discarted roi in molRoi, make a 2D gaussian fit
@@ -936,7 +972,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                     self.removerois.append(i)
                     a += 1
 
-        print("badGauss/total=", a,"/", len(self.molRoi))
+        print("Gauss filter: bad/total=", a,"/", len(self.molRoi))
 #        self.maxnumber_new_gauss = len(self.molRoi)
     def remove_gauss_ROI(self):
         """removes the gauss rois. They are not useful for anything,
@@ -1065,9 +1101,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         # Create dict with spots
         self.sum_spot = dict()
         molArray = dict()
-#        bgArray = dict()
+        bgArray = dict()
         weber = dict()
-#        bg = dict()
+        bg = dict()
         bgNorm = dict()
         morgane = []
 #        s = (2*int(self.BgSizeEdit.text()))  # bgsize = molsize + s
@@ -1078,14 +1114,22 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 molArray[i] = self.molRoi[i].getArrayRegion(self.mean, self.imv.imageItem) /float(self.time_adquisitionEdit.text())
 
                 # get background plus molecule array
-#                bgArray[i] = self.bgRoi[i].getArrayRegion(self.mean, self.imv.imageItem) /float(self.time_adquisitionEdit.text())
+                bgArray[i] = self.bgRoi[i].getArrayRegion(self.mean, self.imv.imageItem) /float(self.time_adquisitionEdit.text())
+
+                # get background array
+                bg[i] = np.sum(bgArray[i]) - np.sum(molArray[i])
+
+                n = int(self.moleculeSizeEdit.text())
+                m = (2*int(self.BgSizeEdit.text())) + n
+                bgNorm[i] = (n*n)*(bg[i]) / (m*m - n*n)
+
 
                 # get normalized background
-                bgNorm[i] = get_counts_bgNorm(self.imv, self.mean,
-                                          self.molRoi[i], self.bgRoi[i],
-                                          int(self.moleculeSizeEdit.text()),
-                                          int(self.BgSizeEdit.text()),
-                                          float(self.time_adquisitionEdit.text()))
+#                bgNorm[i] = get_counts_bgNorm(self.imv, self.mean,
+#                                          self.molRoi[i], self.bgRoi[i],
+#                                          int(self.moleculeSizeEdit.text()),
+#                                          int(self.BgSizeEdit.text()),
+#                                          float(self.time_adquisitionEdit.text()))
 
                 self.sum_spot[p] = (np.sum(molArray[i]) - bgNorm[i])
                 weber[p] = self.sum_spot[p] / bgNorm[i]
@@ -1240,9 +1284,11 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.is_image = True
         self.detectMaxima()
         self.imv.setCurrentIndex(int(self.timing*self.data.shape[0]//int(self.crazyStepEdit.text())))
-        self.filter_bg()
+        self.filter_nospot()
+#        self.filter_bg()
         self.gaussian_fit_ROI()
-        self.filter_bg()
+        self.filter_nospot()
+#        self.filter_bg()
         self.make_histogram()
         print("step #", self.timing,"frame :", int(self.timing*self.data.shape[0]//int(self.crazyStepEdit.text())))
         self.timing +=1
