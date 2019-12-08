@@ -374,11 +374,13 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         self.seelabels_Action = QtGui.QAction(self)
         QtGui.QShortcut(
-            QtGui.QKeySequence('ctrl+a'), self, self.see_labels)
+            QtGui.QKeySequence('ctrl+a'), self, self.see_labels_shortcut)
 
         self.makehistogram_Action = QtGui.QAction(self)
         QtGui.QShortcut(
             QtGui.QKeySequence('ctrl+h'), self, self.make_histogram)
+
+        np.warnings.filterwarnings('ignore')
 
     def importImage(self):  # connected to Load Image (btn1)
         """Select a file to analyse, can be a tif or jpg(on progres)
@@ -665,7 +667,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         centerbg = int(self.BgSizeEdit.text()) * np.array([1, 1])
 
         try:
+            posold = self.smallroi.pos()
             self.smallroi.setSize(roiSize, roiSize)
+            self.smallroi.setPos(posold-center)
         except:
             pass
         try:
@@ -843,6 +847,12 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 self.label[i].setText(text=str(p))
                 p+=1
 
+    def see_labels_shortcut(self):
+        if self.see_labels_button.isChecked():
+            self.see_labels_button.setChecked(False)
+        else:
+            self.see_labels_button.setChecked(True)
+        self.see_labels()
 
     def see_labels(self):
         self.relabel_new_ROI()
@@ -891,7 +901,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
     def filter_nospot(self):
         molArray = dict()
         bgArray = dict()
-#        bg = dict()
+        bg = dict()
+        bgNorm = dict()
         a = 0
 #        roiSize = (int(self.moleculeSizeEdit.text()))
 #        bgsize = 2* int(self.BgSizeEdit.text()) + roiSize
@@ -901,16 +912,24 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 bgArray[i] = self.bgRoi[i].getArrayRegion(self.mean, self.imv.imageItem)
 
 #                molnumber = np.sum(molArray[i]) / (roiSize**2)
-#                print("a mano vs mean array", molnumber, np.mean(molArray[i]))
+                print("mean array", np.mean(molArray[i]), np.sum(molArray[i]))
 #                bgnumber = np.sum(bgArray[i]) / (bgsize**2)
-#                print("a mano vs mean bg", bgnumber, np.mean(bgArray[i]))
+                print("mean bg", np.mean(bgArray[i]))
 
-#                bg[i] = np.sum(bgArray[i]) - np.sum(molArray[i])
+                bg[i] = np.sum(bgArray[i]) - np.sum(molArray[i])
+
+                n = int(self.moleculeSizeEdit.text())
+                m = (2*int(self.BgSizeEdit.text())) + n
+                bgNorm[i] = (n*n)*(bg[i]) / (m*m - n*n)
+
+                print("bgNorm", bgNorm[i])
+
+                print("final valor=", (np.sum(molArray[i]) - bgNorm[i]))
 
 # if the average inside is smaller than outside is deleted
 # I choose to take 1.5 % bigger outside, for the cases too similar
 
-                if np.mean(bgArray[i])*1.0 >= np.mean(molArray[i]):
+                if np.mean(bgArray[i])*1.015 >= np.mean(molArray[i]):
                     self.molRoi[i].setPen('c')
                     self.bgRoi[i].setPen('c')
                     self.removerois.append(i)
