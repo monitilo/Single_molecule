@@ -912,9 +912,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 bgArray[i] = self.bgRoi[i].getArrayRegion(self.mean, self.imv.imageItem)
 
 #                molnumber = np.sum(molArray[i]) / (roiSize**2)
-                print("mean array", np.mean(molArray[i]), np.sum(molArray[i]))
+#                print("mean array", np.mean(molArray[i]), np.sum(molArray[i]))
 #                bgnumber = np.sum(bgArray[i]) / (bgsize**2)
-                print("mean bg", np.mean(bgArray[i]))
+#                print("mean bg", np.mean(bgArray[i]))
 
                 bg[i] = np.sum(bgArray[i]) - np.sum(molArray[i])
 
@@ -922,7 +922,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 m = (2*int(self.BgSizeEdit.text())) + n
                 bgNorm[i] = (n*n)*(bg[i]) / (m*m - n*n)
 
-                print("bgNorm", bgNorm[i])
+#                print("bgNorm", bgNorm[i])
 
                 print("final valor=", (np.sum(molArray[i]) - bgNorm[i]))
 
