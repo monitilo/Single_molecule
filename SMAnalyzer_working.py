@@ -400,7 +400,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         else:
             self.file_path = self.f
             print("Choosed path: \n", self.file_path, "\n")
-            self.edit_save.setText(self.file_path[:-4])
+#            self.edit_save.setText(self.file_path[:-4])
 
             if self.f[-4:] == ".jpg":  # in case I want one picture
 
