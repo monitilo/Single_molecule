@@ -400,6 +400,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         else:
             self.file_path = self.f
             print("Choosed path: \n", self.file_path, "\n")
+            self.edit_save.setText(self.file_path[:-4])
 
             if self.f[-4:] == ".jpg":  # in case I want one picture
 
@@ -430,7 +431,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
 #                self.maxDistEdit.setText("6")
 #                self.moleculeSizeEdit.setText("9")
-                self.maxThreshEdit.setText(str(np.mean(self.data[1,:,:])))
+                self.maxThreshEdit.setText(str(np.mean(self.data[1,:,:]))[:7])
 
 
             # Delete existing ROIs
@@ -844,7 +845,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         p = 0
         for i in np.arange(0, self.fixing_number):
             if i not in self.removerois:
-                self.label[i].setText(text=str(p))
+                self.label[i].setText(text=str(p), color='g')
                 p+=1
 
     def see_labels_shortcut(self):
