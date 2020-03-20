@@ -370,6 +370,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.is_image = False
         self.histo_data = False
         self.is_trace = False
+        self.cuteado = False
 
     # Shortcuts
         self.bgfilter_Action = QtGui.QAction(self)
@@ -437,29 +438,37 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
 
     def load_image(self):
+#        try:
         try:
-            if not self.f:
-                print("You choosed nothing")
-
-            try:
 #                print(len(io.imread(self.f)[0,0,:]), "channels")
-                self.data = io.imread(self.f)[:, :, self.channel]
-            except:
-                print("1D picture, no changes")
-                self.data = io.imread(self.f)
+            self.data = io.imread(self.f)[:, :, self.channel]
+        except:
+            print("1D picture, no changes")
+            self.data = io.imread(self.f)
 
-            self.total_size = [self.data.shape[1], self.data.shape[0]]
-            self.maxThreshEdit.setText(str(np.mean(self.data[:,:]))[:7])
-            self.image_data = self.data
+        self.total_size = [self.data.shape[1], self.data.shape[0]]
+        self.maxThreshEdit.setText(str(np.mean(self.data[:,:]))[:7])
+        self.image_data = self.data
 
-            # Delete existing ROIs
+        if self.roi == None:
+            print("no zone cut")
+        elif self.cuteado == True:
+            print(self.cuted_pos, self.cuted_size)
+            x, y = self.cuted_pos
+            dx,dy = self.cuted_size
+            x, y, dx, dy = int(x), int(y), int(dx), int(dy)
+
+            self.image_data = self.data[y:y+dy, x:x+dx]
+#                self.image_analysis()
+
+        plot_with_colorbar(self.imv, self.image_data)
+
+        # Delete existing ROIs
 #            self.deleteROI()
 #            self.clear_all()
 
-            plot_with_colorbar(self.imv, self.data)
-
-        except:
-            print("Need a image")
+#        except:
+#            print("Need a image")
 
     def createROI(self):  # connected to Create ROI (btn2)
         """ create a big ROI to select the area to make the analysis
@@ -490,8 +499,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         to the good positions in the origianl image. So you can follow them"""
 
         self.is_trace = False
-
+        self.cuteado = False
         plot_with_colorbar(self.imv, self.data)
+#        self.image_analysis = self.data
 
 #        self.w.setWindowTitle('SMAnalyzer - Video - ' + self.f)
 #        self.meanEndEdit.setStyleSheet(" background-color: ; ")
@@ -504,6 +514,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
     def translateMaxima(self):  # go to video call this function
         """ translate the position from the big ROI in to the video again"""
+        #║ Falta lograr que cuando hago el corte, los rois que estan se coincidan
+        # asi puedo hacer zoom in/out sin que nada cambie. TODO:
+
         for i in range(len(self.molRoi)):  # np.arange(0, self.maxnumber):
             self.molRoi[i].translate(self.roi.pos())
             self.bgRoi[i].translate(self.roi.pos())
@@ -512,6 +525,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 self.gauss_roi[i].translate(self.roi.pos())
             except:
                 pass
+
         self.relabel_new_ROI()
         self.btn3.setEnabled(True)
 
@@ -531,12 +545,12 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.bgroiSize = np.array(self.roiSize) + 2* int(self.BgSizeEdit.text())  # s pixel each side
         center = int(self.BgSizeEdit.text()) * np.array([1, 1])
 
-        if self.roi == None:
-            print("no roi")
-            self.image_data = self.data
-        else:
-            self.image_data = self.cuted
-            print("in a cuted ROI ")
+#        if self.roi == None:
+#            print("no roi")
+#            self.image_data = self.data
+#        else:
+#            self.image_data = self.cuted
+#            print("in a cuted ROI ")
 
         # find the local peaks
         self.maximacoord = peak_local_max(self.image_data, min_distance=self.dist, threshold_abs=self.threshold)
@@ -635,12 +649,17 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 #            self.is_image = True
         else:
 #            z = self.roi.getArrayRegion(self.data, self.imv.imageItem)
-            self.cuted = self.roi.getArrayRegion(self.data, self.imv.imageItem)
+#            self.cuted = self.roi.getArrayRegion(self.data, self.imv.imageItem)
 #            plot_with_colorbar(self.imv, self.cuted)
-            self.image_data = self.cuted
+
+            self.cuted_pos = self.roi.pos()
+            self.cuted_size = self.roi.size()
+            self.image_data = self.roi.getArrayRegion(self.data, self.imv.imageItem)
             plot_with_colorbar(self.imv, self.image_data)
             self.imv.view.removeItem(self.roi)
+            self.cuteado = True
             self.btn3.setEnabled(False)
+
 
         self.btn7.setStyleSheet(
                 "QPushButton { background-color: rgb(200, 200, 10); }")
