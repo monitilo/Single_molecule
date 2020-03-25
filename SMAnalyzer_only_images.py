@@ -238,7 +238,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 #        self.options_grid.addWidget(self.meanEndLabel,       5, 0, 1, 1)
 #        self.options_grid.addWidget(self.meanEndEdit,        5, 1, 1, 2)
         self.options_grid.addWidget(channel_label,     4, 0, 1, 1)
-        self.options_grid.addWidget(self.channel_combobox,      5, 0, 1, 1)
+        self.options_grid.addWidget(self.channel_combobox,      4, 1, 1, 1)
 
 #        self.options_grid.addWidget(self.btn4,               6, 0, 1, 1)
         self.options_grid.addWidget(self.btn_images,         6, 2, 1, 1)
@@ -371,6 +371,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.histo_data = False
         self.is_trace = False
         self.cuteado = False
+        self.primera = True
 
     # Shortcuts
         self.bgfilter_Action = QtGui.QAction(self)
@@ -424,51 +425,52 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
             self.total_size = [self.data.shape[1], self.data.shape[0]]
             self.maxThreshEdit.setText(str(np.mean(self.data[:,:]))[:7])
-
+            self.image_data = self.data
 
 
             # Delete existing ROIs
             self.deleteROI()
             self.clear_all()
 
-            plot_with_colorbar(self.imv, self.data)
+            plot_with_colorbar(self.imv, self.image_data)
 
 #            self.w.setWindowTitle('SMAnalyzer - Video - ' + self.f)
 #            self.imv.sigTimeChanged.connect(self.indexChanged)
 
 
     def load_image(self):
-#        try:
         try:
-#                print(len(io.imread(self.f)[0,0,:]), "channels")
-            self.data = io.imread(self.f)[:, :, self.channel]
+            HayAlgunaImagen = self.f
+            try:
+    #                print(len(io.imread(self.f)[0,0,:]), "channels")
+                self.data = io.imread(self.f)[:, :, self.channel]
+            except:
+                print("1D picture, no changes")
+                self.data = io.imread(self.f)
+
+            self.total_size = [self.data.shape[1], self.data.shape[0]]
+            self.maxThreshEdit.setText(str(np.mean(self.data[:,:]))[:7])
+            self.image_data = self.data
+
+            if self.roi == None:
+                print("no zone cut")
+            elif self.cuteado == True:
+                print(self.cuted_pos, self.cuted_size)
+                x, y = self.cuted_pos
+                dx,dy = self.cuted_size
+                x, y, dx, dy = int(x), int(y), int(dx), int(dy)
+
+                self.image_data = self.data[y:y+dy, x:x+dx]
+    #                self.image_analysis()
+
+            plot_with_colorbar(self.imv, self.image_data)
+
+            # Delete existing ROIs
+    #            self.deleteROI()
+    #            self.clear_all()
+
         except:
-            print("1D picture, no changes")
-            self.data = io.imread(self.f)
-
-        self.total_size = [self.data.shape[1], self.data.shape[0]]
-        self.maxThreshEdit.setText(str(np.mean(self.data[:,:]))[:7])
-        self.image_data = self.data
-
-        if self.roi == None:
-            print("no zone cut")
-        elif self.cuteado == True:
-            print(self.cuted_pos, self.cuted_size)
-            x, y = self.cuted_pos
-            dx,dy = self.cuted_size
-            x, y, dx, dy = int(x), int(y), int(dx), int(dy)
-
-            self.image_data = self.data[y:y+dy, x:x+dx]
-#                self.image_analysis()
-
-        plot_with_colorbar(self.imv, self.image_data)
-
-        # Delete existing ROIs
-#            self.deleteROI()
-#            self.clear_all()
-
-#        except:
-#            print("Need a image")
+            print("Need a image")
 
     def createROI(self):  # connected to Create ROI (btn2)
         """ create a big ROI to select the area to make the analysis
@@ -545,13 +547,6 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.bgroiSize = np.array(self.roiSize) + 2* int(self.BgSizeEdit.text())  # s pixel each side
         center = int(self.BgSizeEdit.text()) * np.array([1, 1])
 
-#        if self.roi == None:
-#            print("no roi")
-#            self.image_data = self.data
-#        else:
-#            self.image_data = self.cuted
-#            print("in a cuted ROI ")
-
         # find the local peaks
         self.maximacoord = peak_local_max(self.image_data, min_distance=self.dist, threshold_abs=self.threshold)
 
@@ -610,7 +605,11 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
     def update_size_rois(self):
         roiSize = (int(self.moleculeSizeEdit.text()))
         bgroiSize = roiSize + 2* int(self.BgSizeEdit.text())  # s pixel each side
-        center = ((roiSize - self.roiSize[0])/2) * np.array([1, 1])
+        try:
+            center = ((roiSize - self.roiSize[0])/2) * np.array([1, 1])
+        except:
+            self.roiSize = [int(self.moleculeSizeEdit.text())] * 2
+            center = ((roiSize - self.roiSize[0])/2) * np.array([1, 1])
         centerbg = int(self.BgSizeEdit.text()) * np.array([1, 1])
 
         try:
@@ -645,13 +644,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         if self.roi == None:
             print("you need to mark the zone")
-#            self.image_data = self.data
-#            self.is_image = True
         else:
-#            z = self.roi.getArrayRegion(self.data, self.imv.imageItem)
-#            self.cuted = self.roi.getArrayRegion(self.data, self.imv.imageItem)
-#            plot_with_colorbar(self.imv, self.cuted)
-
             self.cuted_pos = self.roi.pos()
             self.cuted_size = self.roi.size()
             self.image_data = self.roi.getArrayRegion(self.data, self.imv.imageItem)
@@ -671,7 +664,6 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         and click on it to add rois at your analysis"""
 
         if self.smallroi is not None:  # only want one
-#            self.meanEndEdit.setStyleSheet(" background-color: ; ")
             self.imv.view.scene().removeItem(self.smallroi)
             self.smallroi = None
             print("good bye old roi, Hello new Roi")
@@ -685,13 +677,13 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             self.smallroi.sigRemoveRequested.connect(self.remove_small_ROI)
             self.smallroi.setAcceptedMouseButtons(QtCore.Qt.LeftButton)
             self.smallroi.sigClicked.connect(self.small_ROI_to_new_ROI)
-            if self.JPG: # TODO: el todo de abajo
-                self.smallroi.sigRegionChanged.connect(self.making_traces)
+            self.smallroi.sigRegionChanged.connect(self.making_traces)
         except:
             pass
 
     def making_traces(self):  # TODO: transform this in something useful (like intensity-bg)
-        print("no hay mas trazas loco")
+        roisize = int(self.moleculeSizeEdit.text())
+#        print("no hay mas trazas loco")
 #        if not self.JPG:
 #            try:
 #                moltrace = self.smallroi.getArrayRegion(self.data,
@@ -717,6 +709,50 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 #                self.p2.addItem(self.frame_line)
 #                self.frame_line.sigPositionChanged.connect(self.moving_frame)
 #
+#    def moving_frame(self):
+#        frame = int(self.frame_line.pos()[0])
+#        self.meanStartEdit.setText(str(frame))
+#        self.update_image()
+#        self.indexChanged()
+
+#        if not self.JPG:
+        if self.primera == True:
+            self.p2 = self.trace_widget.addPlot(row=2, col=1, title="Line profile. Blue is X; Magenta is Y")
+            self.p2.showGrid(x=True, y=True)
+            self.curve = self.p2.plot(open='y')
+            self.curvey = self.p2.plot(open='y')
+            self.p2.addLegend()
+            self.primera = False
+        else:
+            try:
+                molline = self.smallroi.getArrayRegion(self.image_data,
+                                                        self.imv.imageItem,
+                                                        returnMappedCoords=False)
+
+                valor = (np.sum(molline, axis=0) / float(self.time_adquisitionEdit.text()))   #- roisize
+                valory = (np.sum(molline, axis=1) / float(self.time_adquisitionEdit.text()))  #- roisize
+
+                self.curve.setData(valor,  #np.transpose(molline)
+                                    pen=pg.mkPen(color='b', width=2),
+                                    shadowPen=pg.mkPen('w', width=3))
+                self.curvey.setData(np.transpose(valory),  # np.linspace(0,valory.shape[0],valory.shape[0]),
+                                    pen=pg.mkPen(color='m', width=2),
+                                    shadowPen=pg.mkPen('w', width=3))
+#                self.frame_line.setPos(int(self.meanStartEdit.text()))
+
+            except IOError as e:
+#                self.p2 = self.trace_widget.addPlot(row=2, col=1, title="Line profile")
+#                self.p2.showGrid(x=True, y=True)
+#                self.curve = self.p2.plot(open='y')
+                print("I/O error({0}): {1}".format(e.errno, e.strerror))
+
+#                self.frame_line = pg.InfiniteLine(angle=90,
+#                                              movable=True,
+#                                              pen=pg.mkPen(color=(60,60,200),
+#                                              width=2))
+#                self.p2.addItem(self.frame_line)
+#                self.frame_line.sigPositionChanged.connect(self.moving_frame)
+
 #    def moving_frame(self):
 #        frame = int(self.frame_line.pos()[0])
 #        self.meanStartEdit.setText(str(frame))
