@@ -70,6 +70,10 @@ to subdivide all the frames in this amount of steps and make a full histogram
 of all the detected spots. It applies both filters: bg; gauss; bg again.
 
 """
+#import sys  # to get the path and the name of the .py file runing
+#print (sys.argv[0])
+#print (os.path.basename(sys.argv[0]))
+
 
 import numpy as np
 from pyqtgraph.Qt import QtCore, QtGui
@@ -415,13 +419,16 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         else:
             self.file_path = self.f
             print("Choosed path: \n", self.file_path, "\n")
+            self.file_name = os.path.split(self.file_path)[1][:-4]
 
             try: 
                 print(len(io.imread(self.f)[0,0,:]), "channels")
                 self.data = io.imread(self.f)[:, :, self.channel]
+                self.edit_save.setText(self.file_name +"_"+ channels[self.channel])
             except:
                 print("1D picture")
                 self.data = io.imread(self.f)
+                self.edit_save.setText(self.file_name)
 
             self.total_size = [self.data.shape[1], self.data.shape[0]]
             self.maxThreshEdit.setText(str(np.mean(self.data[:,:]))[:7])
@@ -435,15 +442,15 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             plot_with_colorbar(self.imv, self.image_data)
 
 #            self.w.setWindowTitle('SMAnalyzer - Video - ' + self.f)
-#            self.imv.sigTimeChanged.connect(self.indexChanged)
 
 
     def load_image(self):
         try:
-            HayAlgunaImagen = self.f
+            TeasteandoSiHayAlgunaImagen = self.f
             try:
     #                print(len(io.imread(self.f)[0,0,:]), "channels")
                 self.data = io.imread(self.f)[:, :, self.channel]
+                self.edit_save.setText(self.file_name +"_"+ channels[self.channel])
             except:
                 print("1D picture, no changes")
                 self.data = io.imread(self.f)
@@ -678,86 +685,43 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             self.smallroi.setAcceptedMouseButtons(QtCore.Qt.LeftButton)
             self.smallroi.sigClicked.connect(self.small_ROI_to_new_ROI)
             self.smallroi.sigRegionChanged.connect(self.making_traces)
+
+            if self.primera == True:
+                self.p2 = self.trace_widget.addPlot(row=2, col=1, title="Line profile.SUM/t. Blue is X; Magenta is Y")
+                self.p2.showGrid(x=True, y=True)
+                self.curve = self.p2.plot(open='y')
+                self.curvey = self.p2.plot(open='y')
+                self.primera = False
         except:
             pass
 
     def making_traces(self):  # TODO: transform this in something useful (like intensity-bg)
-        roisize = int(self.moleculeSizeEdit.text())
-#        print("no hay mas trazas loco")
-#        if not self.JPG:
-#            try:
-#                moltrace = self.smallroi.getArrayRegion(self.data,
-#                                                        self.imv.imageItem,
-#                                                        axes=(1,2),
-#                                                        returnMappedCoords=False)
-#
-#                valor = np.sum(moltrace, axis=(1,2)) / float(self.time_adquisitionEdit.text())
-#                self.curve.setData(np.linspace(0,moltrace.shape[0],moltrace.shape[0]),
-#                                            valor,
-#                                            pen=pg.mkPen(color='y', width=1),
-#                                            shadowPen=pg.mkPen('w', width=3))
-#                self.frame_line.setPos(int(self.meanStartEdit.text()))
-#
-#            except:
-#                self.p2 = self.trace_widget.addPlot(row=2, col=1, title="Trace")
+
+#        roisize = int(self.moleculeSizeEdit.text())
+        try:
+            molline = self.smallroi.getArrayRegion(self.image_data,
+                                                    self.imv.imageItem,
+                                                    returnMappedCoords=False)
+
+            valor = (np.sum(molline, axis=0) / float(self.time_adquisitionEdit.text()))   #- roisize
+            valory = (np.sum(molline, axis=1) / float(self.time_adquisitionEdit.text()))  #- roisize
+
+            self.curve.setData(valor,  
+                                pen=pg.mkPen(color='b', width=2),
+                                shadowPen=pg.mkPen('w', width=3))
+            self.curvey.setData(np.transpose(valory),  # np.linspace(0,valory.shape[0],valory.shape[0]),
+                                pen=pg.mkPen(color='m', width=2),
+                                shadowPen=pg.mkPen('w', width=3))
+
+        except IOError as e:
+            print("I/O error({0}): {1}".format(e.errno, e.strerror))
+
+#            if self.primera == True:
+#                self.p2 = self.trace_widget.addPlot(row=2, col=1, title="Line profile.SUM/t. Blue is X; Magenta is Y")
 #                self.p2.showGrid(x=True, y=True)
 #                self.curve = self.p2.plot(open='y')
-#                self.frame_line = pg.InfiniteLine(angle=90,
-#                                              movable=True,
-#                                              pen=pg.mkPen(color=(60,60,200),
-#                                              width=2))
-#                self.p2.addItem(self.frame_line)
-#                self.frame_line.sigPositionChanged.connect(self.moving_frame)
-#
-#    def moving_frame(self):
-#        frame = int(self.frame_line.pos()[0])
-#        self.meanStartEdit.setText(str(frame))
-#        self.update_image()
-#        self.indexChanged()
-
-#        if not self.JPG:
-        if self.primera == True:
-            self.p2 = self.trace_widget.addPlot(row=2, col=1, title="Line profile. Blue is X; Magenta is Y")
-            self.p2.showGrid(x=True, y=True)
-            self.curve = self.p2.plot(open='y')
-            self.curvey = self.p2.plot(open='y')
-            self.p2.addLegend()
-            self.primera = False
-        else:
-            try:
-                molline = self.smallroi.getArrayRegion(self.image_data,
-                                                        self.imv.imageItem,
-                                                        returnMappedCoords=False)
-
-                valor = (np.sum(molline, axis=0) / float(self.time_adquisitionEdit.text()))   #- roisize
-                valory = (np.sum(molline, axis=1) / float(self.time_adquisitionEdit.text()))  #- roisize
-
-                self.curve.setData(valor,  #np.transpose(molline)
-                                    pen=pg.mkPen(color='b', width=2),
-                                    shadowPen=pg.mkPen('w', width=3))
-                self.curvey.setData(np.transpose(valory),  # np.linspace(0,valory.shape[0],valory.shape[0]),
-                                    pen=pg.mkPen(color='m', width=2),
-                                    shadowPen=pg.mkPen('w', width=3))
-#                self.frame_line.setPos(int(self.meanStartEdit.text()))
-
-            except IOError as e:
-#                self.p2 = self.trace_widget.addPlot(row=2, col=1, title="Line profile")
-#                self.p2.showGrid(x=True, y=True)
-#                self.curve = self.p2.plot(open='y')
-                print("I/O error({0}): {1}".format(e.errno, e.strerror))
-
-#                self.frame_line = pg.InfiniteLine(angle=90,
-#                                              movable=True,
-#                                              pen=pg.mkPen(color=(60,60,200),
-#                                              width=2))
-#                self.p2.addItem(self.frame_line)
-#                self.frame_line.sigPositionChanged.connect(self.moving_frame)
-
-#    def moving_frame(self):
-#        frame = int(self.frame_line.pos()[0])
-#        self.meanStartEdit.setText(str(frame))
-#        self.update_image()
-#        self.indexChanged()
+#                self.curvey = self.p2.plot(open='y')
+#                self.primera = False
 
     def remove_small_ROI(self, evt):  # rigth click to delete the new small roi.
         self.imv.view.scene().removeItem(evt)
