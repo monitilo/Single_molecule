@@ -75,6 +75,11 @@ of all the detected spots. It applies both filters: bg; gauss; bg again.
 #print (os.path.basename(sys.argv[0]))
 
 
+#            except Exception as e:
+#                print(e.__class__)
+
+import sys
+
 import numpy as np
 from pyqtgraph.Qt import QtCore, QtGui
 import pyqtgraph as pg
@@ -196,6 +201,13 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.edit_save.setToolTip('Selec a name to save the data.\
               The name automatically changes to not replace the previous one')
 
+
+        self.label_dir_save = QtGui.QPushButton('Save folder')
+#        self.label_dir_save.resize(self.label_dir_save.sizeHint())
+        self.edit_dir_save = QtGui.QLineEdit(os.path.split(sys.argv[0])[0])
+        self.edit_dir_save.resize(self.edit_dir_save.sizeHint())
+        self.edit_dir_save.setToolTip('Selec the folder where save the data')
+
         self.channel_combobox = QtGui.QComboBox()
         self.channel_combobox.addItems(channels)
 #        self.channel_combobox.setCurrentIndex(2)
@@ -269,6 +281,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         self.viewer_grid.addWidget(self.imv,               1, 4, 16, 16)
 
+        self.viewer_grid.addWidget(self.label_dir_save,          17, 4, 1, 5)
+        self.viewer_grid.addWidget(self.edit_dir_save,          17, 9, 1, 10)
+
         self.trace_grid.addWidget(self.trace_widget,      1, 4, 6, 6)
 
         self.post_grid.addWidget(self.see_labels_button,   3, 25, 1, 2)
@@ -292,7 +307,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.btn5.clicked.connect(self.showVideo)
         self.btn6.clicked.connect(self.detectMaxima)
         self.btn7.clicked.connect(self.exportTraces_or_images)
-        
+
+        self.label_dir_save.clicked.connect(self.save_folder_select)
+
         self.btn_images.clicked.connect(self.image_analysis)
         self.btn_small_roi.clicked.connect(self.create_small_ROI)
         self.btn_gauss_fit.clicked.connect(self.gaussian_fit_ROI)
@@ -451,7 +468,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
     #                print(len(io.imread(self.f)[0,0,:]), "channels")
                 self.data = io.imread(self.f)[:, :, self.channel]
                 self.edit_save.setText(self.file_name +"_"+ channels[self.channel])
-            except:
+
+            except IndexError:
                 print("1D picture, no changes")
                 self.data = io.imread(self.f)
 
@@ -476,8 +494,27 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
     #            self.deleteROI()
     #            self.clear_all()
 
-        except:
+        except AttributeError:
             print("Need a image")
+
+    def save_folder_select(self):
+        """Select a folder to save """
+
+        # Remove annoying empty window
+        root = Tk()
+        root.withdraw()
+
+        # Select image from file
+        self.folder = filedialog.askdirectory()
+
+        if not self.folder:
+            print("You choosed nothing")
+        else:
+#            self.file_path = self.f
+#            print("Choosed path: \n", self.folder, "\n")
+             self.edit_dir_save.setText(self.folder)
+
+
 
     def createROI(self):  # connected to Create ROI (btn2)
         """ create a big ROI to select the area to make the analysis
@@ -1058,7 +1095,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         N = 0
         number = ""
-        self.custom_name  = str(self.edit_save.text()) + "_"
+        
+        self.custom_name  = str(self.edit_dir_save.text()) +"/"+ str(self.edit_save.text()) + "_"
 
         if what == "images":
             header = "Counts in Roi"+"    "+"Background (normalize by roisize)"+"    "+"Wever contrast"
@@ -1105,6 +1143,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 N += 1
             exporter.export(png_name)
             print( "\n Picture exported as", png_name)
+
+            import sys  # to get the path and the name of the .py file runing
+            print ("\n all saved in " +sys.argv[0])
 
 # %% out of program
 
