@@ -728,6 +728,11 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 self.p2.showGrid(x=True, y=True)
                 self.curve = self.p2.plot(open='y')
                 self.curvey = self.p2.plot(open='y')
+                self.frame_line = pg.InfiniteLine(angle=90,
+                                              movable=True,
+                                              pen=pg.mkPen(color=(200,220,200),
+                                              width=1))
+                self.p2.addItem(self.frame_line)
                 self.primera = False
         except:
             pass
@@ -749,6 +754,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             self.curvey.setData(np.transpose(valory),  # np.linspace(0,valory.shape[0],valory.shape[0]),
                                 pen=pg.mkPen(color='m', width=2),
                                 shadowPen=pg.mkPen('w', width=3))
+            self.frame_line.setPos(((valor.shape[0]-1)/2))
 
         except IOError as e:
             print("I/O error({0}): {1}".format(e.errno, e.strerror))
