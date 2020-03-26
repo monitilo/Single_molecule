@@ -520,7 +520,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         """ create a big ROI to select the area to make the analysis
         default is the size of the picture"""
         if self.roi is None:
-            self.roi = pg.ROI([0, 0], self.total_size,
+            self.roi = pg.ROI([0, 0], (self.total_size[0]/2, self.total_size[1]/2),
                               scaleSnap=True, translateSnap=True,
                               removable=True)  # [70, 70]
             self.roi.addScaleHandle([1, 1], [0, 0])
@@ -546,8 +546,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         self.is_trace = False
         self.cuteado = False
-        plot_with_colorbar(self.imv, self.data)
-#        self.image_analysis = self.data
+        self.image_data = self.data
+        plot_with_colorbar(self.imv, self.image_data)
+
 
 #        self.w.setWindowTitle('SMAnalyzer - Video - ' + self.f)
 #        self.meanEndEdit.setStyleSheet(" background-color: ; ")
@@ -560,8 +561,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
     def translateMaxima(self):  # go to video call this function
         """ translate the position from the big ROI in to the video again"""
-        #║ Falta lograr que cuando hago el corte, los rois que estan se coincidan
-        # asi puedo hacer zoom in/out sin que nada cambie. TODO:
+        # TODO: Falta lograr que cuando hago el corte, los rois que estan se coincidan
+        # asi puedo hacer zoom in/out sin que nada cambie. 
 
         for i in range(len(self.molRoi)):  # np.arange(0, self.maxnumber):
             self.molRoi[i].translate(self.roi.pos())
@@ -571,6 +572,24 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 self.gauss_roi[i].translate(self.roi.pos())
             except:
                 pass
+
+        self.relabel_new_ROI()
+        self.btn3.setEnabled(True)
+
+    def translateMaximaIN(self):  # go to video call this function
+        """ translate the position from the big ROI in to the video again"""
+        # TODO: Falta lograr que cuando hago el corte, los rois que estan se coincidan
+        # asi puedo hacer zoom in/out sin que nada cambie. 
+
+        for i in range(len(self.molRoi)):  # np.arange(0, self.maxnumber):
+            self.molRoi[i].translate(-self.roi.pos())
+            self.bgRoi[i].translate(-self.roi.pos())
+            self.label[i].setPos(self.molRoi[i].pos())
+            try:
+                self.gauss_roi[i].translate(-self.roi.pos())
+            except:
+                pass
+
 
         self.relabel_new_ROI()
         self.btn3.setEnabled(True)
@@ -696,6 +715,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             self.imv.view.removeItem(self.roi)
             self.cuteado = True
             self.btn3.setEnabled(False)
+            self.translateMaximaIN()
 
 
         self.btn7.setStyleSheet(
@@ -737,9 +757,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         except:
             pass
 
-    def making_traces(self):  # TODO: transform this in something useful (like intensity-bg)
+    def making_traces(self):
 
-#        roisize = int(self.moleculeSizeEdit.text())
         try:
             molline = self.smallroi.getArrayRegion(self.image_data,
                                                     self.imv.imageItem,
@@ -1398,7 +1417,7 @@ if __name__ == '__main__':
 """
 circularity---
 
-
+Hacer que vaya y vuelva con el cuting
 """
 
 
