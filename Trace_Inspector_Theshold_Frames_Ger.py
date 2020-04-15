@@ -361,8 +361,8 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
         self.graph.plot(self.data[:, int(self.traceindexEdit.text())], pen=pg.mkPen(color=self.colorgraph, width=1))
         self.Trace_index_Slider_Edit.setText(format(int(self.traceindexEdit.text())))
         self.traceSlider.setValue(int(self.traceindexEdit.text()))
-        
-        
+
+
     # Define update plot with slider    
 
     # Plot the binary trace of the selected trace    
@@ -620,24 +620,32 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
         filtered_traces = np.zeros((self.data.shape[0], count_good_traces))
         k_good = 0
 
+        filtered_sum_on = []
+
         for k in range(0, self.selection.shape[0]):
             if self.selection[k, 1] == 1:
                 filtered_traces[:, k_good] = self.data[:, k]
+                filtered_sum_on.append(self.sum_on_trace[k])
                 k_good += 1
-        
+
         folder = os.path.dirname(self.file_name)
         file_traces_name = os.path.basename(self.file_name)
-        np.savetxt(folder+'/FILTERED_'+file_traces_name, filtered_traces)
+#        np.savetxt(folder+'/FILTERED_'+file_traces_name, filtered_traces)
         amount_goodTraces = (np.count_nonzero(self.selection[:, 1] == 1)/int(self.data.shape[1]))*100
         print('[Filtered Traces Saved]: Amount of Good Traces: '+str(amount_goodTraces)[0:3]+'%')
-        np.savetxt(folder+'/ON_TIMES_'+file_traces_name,self.times_frames_total_on)
-        np.savetxt(folder+'/OFF_TIMES_'+file_traces_name,self.times_frames_total_off)
-        np.savetxt(folder+'/selection_'+file_traces_name, self.selection)
-        print("[selection saved]", folder+'/selection_'+file_traces_name)
-        print(self.selection)
-        print('and, [Ton and Toff saved]')
-        np.savetxt(folder+'/sum_counts_on_'+file_traces_name, self.sum_on_trace )
 
+#        np.savetxt(folder+'/selection_'+file_traces_name, self.selection)
+#        print("[selection saved]", folder+'/selection_'+file_traces_name)
+#        print(self.selection)
+        try:
+            np.savetxt(folder+'/ON_TIMES_'+file_traces_name,self.times_frames_total_on)
+            np.savetxt(folder+'/OFF_TIMES_'+file_traces_name,self.times_frames_total_off)
+            print('and, [Ton and Toff saved]')
+        except:
+            pass
+
+        np.savetxt(folder+'/SUM_COUNTS_ON_'+file_traces_name, filtered_sum_on)
+        print('Sum_counts_on saved')
         
 if __name__ == '__main__':
 
