@@ -284,7 +284,9 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
 
     # Define Actions    
     def importTrace(self):
-
+        """ data.shape[0] = amount of frames (500, 1000, 10k)
+        data.shape[1] = amount of traces (the spot you find)
+"""
         # Remove annoying empty window
         root = Tk()
         root.withdraw()
@@ -293,6 +295,9 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
         self.file_name = filedialog.askopenfilename(filetypes=(("", "*.txt"), ("", "*.txt")))
         self.data = np.loadtxt(self.file_name)
         self.traceSlider.setMaximum(self.data.shape[1]-1)
+
+        self.sum_on_trace = np.zeros(self.data.shape[1])
+
         self.graph.clear()
         self.selection = np.zeros((self.data.shape[1], 6))  # + Step column (5 ==> 6)
         self.selection[:,0] = np.arange(0,self.data.shape[1])
@@ -324,8 +329,12 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
         # Define initial Threshold
         print('[Initial Threshold Calculation]')
         for i in range(0, self.data.shape[1]):
-            initial_threshold = stats.mode(self.data[:, i]) + 5*np.std(self.data[:, i])
+            initial_threshold = stats.mode(self.data[:, i]) + 2.5*np.std(self.data[:, i])  # there is the initial Threshold
             self.selection[i, 2] = initial_threshold[0]
+
+            fake_trace = self.data[:,i]
+            self.sum_on_trace[i] =  np.sum(fake_trace[np.where(fake_trace > initial_threshold[0])])
+
         self.thresholdSlider.setMaximum(((np.max(self.data[:,int(self.traceindexEdit.text())]))))
         self.thresholdSlider.setValue(int(self.selection[0, 2]))
 #        self.EndFrameEdit.setText(str(self.data.shape[0]))
@@ -366,6 +375,10 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
         trace = self.data[:,(int(self.traceSlider.value()))]
         threshold = int(self.thresholdSlider.value())
         threshold_vector = threshold*np.ones(self.data.shape[0])
+
+        self.sum_on_trace[int(self.traceSlider.value())]  = np.sum(trace[np.where(trace > threshold)])
+#        print("SUM ON TRACE",self.sum_on_trace )
+
         binary_trace = np.where(trace < threshold, binary_trace, 1)
         self.BinaryTrace.plot(binary_trace, pen=pg.mkPen(color=(125 ,50, 150), width=1))
         self.BinaryTrace.plot((self.data[:,(int(self.traceSlider.value()))]-mode)/np.max(self.data[:,(int(self.traceSlider.value()))]-mode), pen=pg.mkPen(color=self.colorgraph, width=1))
@@ -383,7 +396,7 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
         self.graph.plot(self.data[:, (int(self.traceSlider.value()))], pen=pg.mkPen(color=self.colorgraph, width=1))
         self.threshold_index_Slider_Edit.setText(format(int(self.selection[int(self.traceSlider.value()), 2])))
         self.thresholdSlider.setMaximum((np.max(self.data[:, int(self.traceSlider.value())])))
-        self.thresholdSlider.setValue(int(self.selection[int(self.traceSlider.value()), 2]))
+        self.thresholdSlider.setValue(float(self.selection[int(self.traceSlider.value()), 2]))
         self.step_detection()
         self.PlotBinaryTrace()
 # =============================================================================
@@ -421,12 +434,14 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
         mode=0
         trace = self.data[:, (int(self.traceSlider.value()))]
         new_binary_trace = np.zeros(self.data.shape[0])
-        new_threshold = int(self.thresholdSlider.value())
+        new_threshold = float(self.thresholdSlider.value())
         new_threshold_vector = new_threshold*np.ones(self.data.shape[0])
         new_binary_trace = np.where(trace < new_threshold, new_binary_trace, 1)
         self.BinaryTrace.plot(new_binary_trace,pen=pg.mkPen(color=(125,50,150), width=1))
         self.BinaryTrace.plot((self.data[:,(int(self.traceSlider.value()))]-mode)/np.max(self.data[:,(int(self.traceSlider.value()))]-mode), pen=pg.mkPen(color=self.colorgraph, width=1))
         self.BinaryTrace.plot((new_threshold_vector-mode)/np.max(self.data[:,(int(self.traceSlider.value()))]-mode), pen=pg.mkPen(color=(255,60,60), width=3))
+        self.sum_on_trace[int(self.traceSlider.value())] = np.sum(trace[np.where(trace > new_threshold)])
+#        print("SUM ON TRACE",self.sum_on_trace )
 
     def step_detection(self):
 
@@ -478,8 +493,7 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
         self.next_trace()
         self.update_trace()
         self.update_threshold()
-        
-        
+
 
     # Bad Trace Button Action   
     def save_badSelection_traces(self):
@@ -608,6 +622,7 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
         print("[selection saved]", folder+'/selection_'+file_traces_name)
         print(self.selection)
         print('and, [Ton and Toff saved]')
+        np.savetxt(folder+'/sum_counts_on_'+file_traces_name, self.sum_on_trace )
 
         
 if __name__ == '__main__':
