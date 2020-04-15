@@ -578,8 +578,6 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
     def translateMaximaIN(self):  # go to video call this function
         """ translate the position from the big ROI in to the video again"""
-        # TODO: Falta lograr que cuando hago el corte, los rois que estan se coincidan
-        # asi puedo hacer zoom in/out sin que nada cambie. 
 
         for i in range(len(self.molRoi)):  # np.arange(0, self.maxnumber):
             self.molRoi[i].translate(-self.roi.pos())
@@ -592,7 +590,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
 
         self.relabel_new_ROI()
-        self.btn3.setEnabled(True)
+
 
     def detectMaxima(self):  # connected to Detect Molecules (btn6)
         """here is where the magic begins...
