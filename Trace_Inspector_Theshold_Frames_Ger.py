@@ -330,11 +330,14 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
         # Define initial Threshold
         print('[Initial Threshold Calculation]')
         for i in range(0, self.data.shape[1]):
-            initial_threshold = stats.mode(self.data[:, i]) + 3*np.std(self.data[:, i])  # there is the initial Threshold
+            initial_threshold = stats.mode(self.data[:, i]) + 2*np.std(self.data[:, i])  # there is the initial Threshold
             self.selection[i, 2] = initial_threshold[0]
+
 
             fake_trace = self.data[:,i]
             self.sum_on_trace[i] =  np.sum(fake_trace[np.where(fake_trace > initial_threshold[0])])
+
+        self.another_threshold = self.selection[:,2]
 
         self.thresholdSlider.setMaximum(((np.max(self.data[:,int(self.traceindexEdit.text())]))))
 #        self.thresholdSlider.setMaximum(50)
@@ -391,7 +394,7 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
         self.BinaryTrace.plot(trace*10, pen=pg.mkPen(color=self.colorgraph, width=1))
         self.BinaryTrace.plot((threshold_vector), pen=pg.mkPen(color=(255,60,60), width=3))
 
-    def update_trace(self):      
+    def update_trace(self):
         self.graph.clear()
         self.Trace_index_Slider_Edit.setText(format(int(self.traceSlider.value())))
         if self.selection[int(self.traceSlider.value()), 1] == 1:
@@ -405,6 +408,7 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
         self.thresholdSlider.setMaximum(10*(np.max(self.data[:, int(self.traceSlider.value())])))
 #        self.thresholdSlider.setMaximum(50)
         self.thresholdSlider.setValue(10*float(self.selection[int(self.traceSlider.value()), 2]))
+        print("1threshold = ", self.selection[int(self.traceSlider.value()),2])
         self.step_detection()
         self.PlotBinaryTrace()
 # =============================================================================
@@ -455,11 +459,14 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
         self.BinaryTrace.plot((new_threshold_vector), pen=pg.mkPen(color=(255,60,60), width=3))
 
         self.sum_on_trace[int(self.traceSlider.value())] = np.sum(trace[np.where(trace > 0.1*new_threshold)])
-        print("SUM ON TRACE", self.sum_on_trace[int(self.traceSlider.value())] )
+#        print("SUM ON TRACE", self.sum_on_trace[int(self.traceSlider.value())] )
+        print("2threshold = ", self.selection[int(self.traceSlider.value()),2])
 
     def step_detection(self):
 
+#        threshold = self.another_threshold[int(self.traceSlider.value())]
         threshold = int(self.thresholdSlider.value())
+        print("another_threshold", threshold)
         self.threshold_line = pg.InfiniteLine(angle=0, movable=True, pen=pg.mkPen(color=(255,60,60), width=2))
         self.threshold_line.setPos(threshold*0.1)
         self.graph.addItem(self.threshold_line)
@@ -476,7 +483,7 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
         aux = self.data[:,(int(self.traceSlider.value()))]
         self.step_intensity = np.mean(aux[np.where(aux>threshold)]) - np.mean(aux[np.where(aux<threshold)])
 
-        self.selection[int(self.traceSlider.value()), 2] = int(self.thresholdSlider.value())
+#        self.selection[int(self.traceSlider.value()), 2] = int(self.thresholdSlider.value())
         self.labelstep2.setText("<span style='font-size: 12pt'> <span style='color: black'>Step2=%0.1f</span>" % self.step_intensity)
 
 
@@ -490,7 +497,8 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
     # Good Trace Button Action    
     def save_goodSelection_traces(self):
         self.selection[int(self.traceSlider.value()), 1] = 1
-        self.selection[int(self.traceSlider.value()), 2] = int(self.thresholdSlider.value())
+        self.selection[int(self.traceSlider.value()), 2] = 0.1*int(self.thresholdSlider.value())
+#        self.another_threshold[int(self.traceSlider.value()), 2] = 0.1*int(self.thresholdSlider.value())
         
 # =============================================================================
 #         self.selection[int(self.traceSlider.value()), 3] = int(self.lr.getRegion()[0])
