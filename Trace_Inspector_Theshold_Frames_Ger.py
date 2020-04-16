@@ -630,13 +630,13 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
 
         folder = os.path.dirname(self.file_name)
         file_traces_name = os.path.basename(self.file_name)
-#        np.savetxt(folder+'/FILTERED_'+file_traces_name, filtered_traces)
+        np.savetxt(folder+'/FILTERED_'+file_traces_name, filtered_traces)
         amount_goodTraces = (np.count_nonzero(self.selection[:, 1] == 1)/int(self.data.shape[1]))*100
         print('[Filtered Traces Saved]: Amount of Good Traces: '+str(amount_goodTraces)[0:3]+'%')
 
-#        np.savetxt(folder+'/selection_'+file_traces_name, self.selection)
-#        print("[selection saved]", folder+'/selection_'+file_traces_name)
-#        print(self.selection)
+        np.savetxt(folder+'/selection_'+file_traces_name, self.selection)
+        print("[selection saved]", folder+'/selection_'+file_traces_name)
+        print(self.selection)
         try:
             np.savetxt(folder+'/ON_TIMES_'+file_traces_name,self.times_frames_total_on)
             np.savetxt(folder+'/OFF_TIMES_'+file_traces_name,self.times_frames_total_off)
