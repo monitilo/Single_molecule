@@ -408,7 +408,7 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
         self.thresholdSlider.setMaximum(10*(np.max(self.data[:, int(self.traceSlider.value())])))
 #        self.thresholdSlider.setMaximum(50)
         self.thresholdSlider.setValue(10*float(self.selection[int(self.traceSlider.value()), 2]))
-        print("1threshold = ", self.selection[int(self.traceSlider.value()),2])
+#        print("1threshold = ", self.selection[int(self.traceSlider.value()),2])
         self.step_detection()
         self.PlotBinaryTrace()
 # =============================================================================
@@ -460,13 +460,13 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
 
         self.sum_on_trace[int(self.traceSlider.value())] = np.sum(trace[np.where(trace > 0.1*new_threshold)])
 #        print("SUM ON TRACE", self.sum_on_trace[int(self.traceSlider.value())] )
-        print("2threshold = ", self.selection[int(self.traceSlider.value()),2])
+#        print("2threshold = ", self.selection[int(self.traceSlider.value()),2])
 
     def step_detection(self):
 
 #        threshold = self.another_threshold[int(self.traceSlider.value())]
         threshold = int(self.thresholdSlider.value())
-        print("another_threshold", threshold)
+#        print("another_threshold", threshold)
         self.threshold_line = pg.InfiniteLine(angle=0, movable=True, pen=pg.mkPen(color=(255,60,60), width=2))
         self.threshold_line.setPos(threshold*0.1)
         self.graph.addItem(self.threshold_line)
