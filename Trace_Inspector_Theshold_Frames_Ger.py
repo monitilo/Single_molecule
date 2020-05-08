@@ -26,6 +26,37 @@ se carga un umbral determinado como la moda (fondo) + std de cada traza que lueg
 ira cambiando. En la cuarta y quinta columna se guardan la seleccion de frames realizada 
 con el programa para hacer un post analisis. 
 OJO: Si no ponen el exposure time, el programa no va a calcular los tiempos On y Off
+
+## ENGLISH
+
+This program is a user interface that allows you to inspect and select 
+traces, or some 1D signal from a .txt file.
+Each column in the txt file corresponds to a trace or dataset
+-Field for setting the exposure time or characteristic time of the detector used for
+time calculation
+-It has a slider to inspect all the data
+-It has a slider to touch the threshold to separate between on and off events. If you don't 
+changes, the default is saved (background gaussian setting + 10sigma)
+-An editable field to look at a specific trace or data set
+-The good Trace and bad Trace buttons are used to decide if you want to work 
+with that trace or dataset that is graphed
+-When exporting, the percentage of selected good traces will be indicated and
+a .txt file with the "good traces" is saved, the name of which starts with
+"FILTERED_" and continues with the name of the selected trace file. Two .txt files
+with the calculated On and Off times of the good traces(if the calculate ON OFF times buttos was pressed).
+-The following is stored in the self.selection matrix: 
+    -the first column is the index of the trace, 
+    -in the second column a 1 will be saved if the trace is good and a -1 if the trace is bad. 
+    -In the third column initially, a certain threshold is loaded as the mode (background) + std 
+       of each trace which is then will be changing. 
+    -In the fourth and fifth columns, the selection of frames made with the program to do a post analysis. (deprecated)
+    - The final colum (6th) is the "step intensity". Green zone mean - red zone mean.
+
+WARNING: If you do not set the exposure time, the program will not calculate the On and Off times
+
+
+
+
 """
 import numpy as np
 import pyqtgraph as pg
@@ -71,7 +102,7 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
         self.btnBadTrace = QtGui.QPushButton('Bad Trace (b)')
         self.btnTonTimes = QtGui.QPushButton('Calculate Ton and Toff')
         self.btnExport = QtGui.QPushButton('Export Trace Selection and T')
-        self.btnautomatic_detect = QtGui.QPushButton('Automatic takes step ')
+        self.btnautomatic_detect = QtGui.QPushButton('Automatic find threshold ')
 
         # Create parameter fields with labels
         self.traceindex = QtGui.QLabel('Show Trace:')
@@ -204,7 +235,7 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
         self.btnTonTimes.clicked.connect(self.Calculate_TON_times)
         self.btnExport.clicked.connect(self.exportTraces)
 
-        self.btnautomatic_detect.clicked.connect(self.step_detection)
+        self.btnautomatic_detect.clicked.connect(self.calculate_threshold)  #  self.step_detection)
 
 #        self.btnmaxmin.clicked.connect(self.calculate_max_min)
 #        self.btnmaxmin.clicked.connect(self.make_histogram)
@@ -297,11 +328,13 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
         self.traceSlider.setMaximum(self.data.shape[1]-1)
 
         self.sum_on_trace = np.zeros(self.data.shape[1])
+        self.signal2noise = np.zeros(self.data.shape[1])
+        self.intensity = np.zeros(self.data.shape[1])
 
         self.graph.clear()
         self.selection = np.zeros((self.data.shape[1], 6))  # + Step column (5 ==> 6)
         self.selection[:,0] = np.arange(0,self.data.shape[1])
-        self.selection[:,4] = self.data.shape[0]
+#        self.selection[:,4] = self.data.shape[0]
         self.colorgraph = (100, 150, 255)
 # =============================================================================
 #         self.lr = pg.LinearRegionItem([0,int(self.selection[0,4])], brush=None)
@@ -372,7 +405,7 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
     def PlotBinaryTrace(self):
         self.BinaryTrace.clear()
         mode = stats.mode(self.data[:, int(self.traceSlider.value())])[0]
-        print("mode=", mode)
+#        print("mode=", mode)
         mode=0
         self.BinaryTrace.setLabel('left', "Normalized Intensity")
         self.BinaryTrace.setLabel('bottom', "Frame")
@@ -462,13 +495,22 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
 #        print("SUM ON TRACE", self.sum_on_trace[int(self.traceSlider.value())] )
 #        print("2threshold = ", self.selection[int(self.traceSlider.value()),2])
 
+        meanON = np.mean(trace[np.where(trace > 0.1*new_threshold)])
+        self.signal2noise[int(self.traceSlider.value())] = meanON / np.std(trace[np.where(trace > 0.1*new_threshold)])
+#        a = np.asanyarray(trace[np.where(trace > 0.1*new_threshold)])
+#        m = a.mean(0)
+#        sd = a.std(axis=0, ddof=0)  # TODO: usar std no la varianza
+
+#        self.signal2noise[int(self.traceSlider.value())] = np.where(sd == 0, 0, m/sd)
+        self.intensity[int(self.traceSlider.value())] = meanON
+
     def step_detection(self):
 
 #        threshold = self.another_threshold[int(self.traceSlider.value())]
-        threshold = int(self.thresholdSlider.value())
+        threshold = int(self.thresholdSlider.value())*0.1
 #        print("another_threshold", threshold)
         self.threshold_line = pg.InfiniteLine(angle=0, movable=True, pen=pg.mkPen(color=(255,60,60), width=2))
-        self.threshold_line.setPos(threshold*0.1)
+        self.threshold_line.setPos(threshold)
         self.graph.addItem(self.threshold_line)
         aux = self.data[:,(int(self.traceSlider.value()))]
         self.step_intensity = np.mean(aux[np.where(aux>threshold)]) - np.mean(aux[np.where(aux<threshold)])
@@ -479,7 +521,7 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
     def moving_threshold(self):
         print("pos", self.threshold_line.pos()[1])
         self.thresholdSlider.setValue(int(self.threshold_line.pos()[1]*10))
-        threshold = int(self.thresholdSlider.value())
+        threshold = int(self.thresholdSlider.value())*0.1
         aux = self.data[:,(int(self.traceSlider.value()))]
         self.step_intensity = np.mean(aux[np.where(aux>threshold)]) - np.mean(aux[np.where(aux<threshold)])
 
@@ -498,8 +540,9 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
     def save_goodSelection_traces(self):
         self.selection[int(self.traceSlider.value()), 1] = 1
         self.selection[int(self.traceSlider.value()), 2] = 0.1*int(self.thresholdSlider.value())
-#        self.another_threshold[int(self.traceSlider.value()), 2] = 0.1*int(self.thresholdSlider.value())
-        
+
+        self.selection[int(self.traceSlider.value()), 3] = self.signal2noise[int(self.traceSlider.value())]
+        self.selection[int(self.traceSlider.value()), 4] = self.intensity[int(self.traceSlider.value())]
 # =============================================================================
 #         self.selection[int(self.traceSlider.value()), 3] = int(self.lr.getRegion()[0])
 #         self.selection[int(self.traceSlider.value()), 4] = int(self.lr.getRegion()[1])
@@ -522,6 +565,7 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
         self.selection[int(self.traceSlider.value()), 1] = -1
         self.colorgraph = (250, 150, 50)
 
+        self.selection[int(self.traceSlider.value()), 2] = 0
         self.selection[int(self.traceSlider.value()), 5] = 0
         print("BADselection traces")
 #        print(self.selection[int(self.traceSlider.value())-1:int(self.traceSlider.value())+2])
@@ -608,6 +652,44 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
         self.times_frames_total_off = self.times_frames_total_off*Exposure_time
         print('[Ton and Toff Calculation finished]')
 
+    def calculate_threshold(self):
+
+        for i in range(len(self.selection[:, 2])):
+            distance = []
+            step = 2
+            trace = self.data[:, i]*10
+            new_binary_trace = np.zeros(self.data.shape[0])
+            old_threshold = 10  # float(self.selection[i, 2])
+
+#            converge = False
+#            while converge == False:
+            for j in range(int(np.max(trace)//step)):
+#                mean_off_trace = np.mean(trace[np.where(trace < old_threshold)])
+                new_binary_trace = np.where(trace < old_threshold, new_binary_trace, np.max(trace))
+                indexes = np.argwhere(np.diff(new_binary_trace)).squeeze()
+#                if indexes.size > 10:  # PUEDE SER UNA VARIABLE EN LA UI
+#                    if mean_off_trace < np.mean(trace[-20:]):
+#                        old_threshold +=1
+#                    elif mean_off_trace > np.mean(trace[-20:]):
+#                        old_threshold -=1
+#                else:
+#                    converge = True
+#                    print("CONVERGE at ", old_threshold)
+#                    break
+#                j+=1
+                distance.append(np.mean(np.diff(indexes)))
+                old_threshold += step
+                
+            the_i = np.where(np.array(distance)==np.max(np.nan_to_num(distance)))
+            print(np.min((the_i)), "the_i")
+            old_threshold = 10 + step*int(np.mean(the_i)-2)
+            new_binary_trace = np.where(trace< old_threshold, new_binary_trace, np.max(trace))
+
+            self.selection[i, 2] = float(old_threshold/10)
+
+
+
+
 #    def make_histogram(self):
 #        try:
 #            self.histo_window.removeItem(self.plt1)
@@ -642,7 +724,9 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
         amount_goodTraces = (np.count_nonzero(self.selection[:, 1] == 1)/int(self.data.shape[1]))*100
         print('[Filtered Traces Saved]: Amount of Good Traces: '+str(amount_goodTraces)[0:3]+'%')
 
-        np.savetxt(folder+'/selection_'+file_traces_name, self.selection)
+        header = "Traces"+"    "+"Good(1)_bad(-1)"+"    "+"Threshold"+"    "+"Signal2noise"+"    "+"Intensity"+"    "+"step"
+
+        np.savetxt(folder+'/selection_'+file_traces_name, self.selection, header=header)
         print("[selection saved]", folder+'/selection_'+file_traces_name)
         print(self.selection)
         try:
