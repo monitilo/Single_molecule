@@ -261,9 +261,17 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
         QtGui.QShortcut(
             QtGui.QKeySequence('g'), self, self.save_goodSelection_traces)
 
+        self.good_selection_Action2 = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('1'), self, self.save_goodSelection_traces)
+
         self.bad_selection_Action = QtGui.QAction(self)
         QtGui.QShortcut(
             QtGui.QKeySequence('b'), self, self.save_badSelection_traces)
+
+        self.bad_selection_Action2 = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('0'), self, self.save_badSelection_traces)
 
     def close_win(self):  # called pressing ESC
         """Close all when press ESC"""
@@ -363,7 +371,8 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
         # Define initial Threshold
         print('[Initial Threshold Calculation]')
         for i in range(0, self.data.shape[1]):
-            initial_threshold = stats.mode(self.data[:, i]) + 2*np.std(self.data[:, i])  # there is the initial Threshold
+            short = int(len(self.data[:, i])//4)
+            initial_threshold = stats.mode(self.data[-short:, i]) + 5*np.std(self.data[-short:, i])  # there is the initial Threshold
             self.selection[i, 2] = initial_threshold[0]
 
 
@@ -728,7 +737,7 @@ class Trace_Inspector(pg.Qt.QtGui.QMainWindow):  # pg.Qt.QtGui.QMainWindow
 
         np.savetxt(folder+'/selection_'+file_traces_name, self.selection, header=header)
         print("[selection saved]", folder+'/selection_'+file_traces_name)
-        print(self.selection)
+#        print(self.selection)
         try:
             np.savetxt(folder+'/ON_TIMES_'+file_traces_name,self.times_frames_total_on)
             np.savetxt(folder+'/OFF_TIMES_'+file_traces_name,self.times_frames_total_off)
