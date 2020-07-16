@@ -95,17 +95,16 @@ def updateStylePatched(self):
     r = '3px'
     if self.dim:  # below tab (not clicked)
         fg = '#b0b0b0'  #grey letters
-#        bg = '#94f5bb' # ligth green bg
-#        border = '#94f5bb'
-
-        bg = '#a8b3ed' # ligth Blue bg
+        bg = '#94f5bb' # ligth green bg
+        border = '#94f5bb'
+#        fg = '#0c0d0c'  #Black letters
+#        bg = '#a8b3ed' # ligth Blue bg
         border = '#a8b3ed'
 
     else:
-#        fg = '#fff'  # white ?
+        fg = '#fff'  # white ?
 #        bg = '#10b151' # Green
 #        border = '#10b151'
-        fg = '#fff'  # white ?
         bg = '#0e2bcc' # Blue
         border = '#0e2bcc'
         
@@ -428,7 +427,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
 
         self.btn_NP_analyse.clicked.connect(self.NP_making_traces)
-
+        self.btn_NP_previous.clicked.connect(self.NP_previous)
+        self.btn_NP_next.clicked.connect(self.NP_next)
 
         # automatic action when you edit the number 
         self.meanStartEdit.textEdited.connect(self.update_image)
@@ -1324,7 +1324,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 #        s = (2*int(self.BgSizeEdit.text()))  # bgsize = molsize + s
         p=0
         for i in range(len(self.molRoi)):  # np.arange(0, self.maxnumber):
-            if i not in self.removerois:             
+            if i not in self.removerois:
                 # get molecule array
                 molArray[i] = self.molRoi[i].getArrayRegion(self.mean, self.imv.imageItem) /float(self.time_adquisitionEdit.text())
 
@@ -1487,11 +1487,19 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
     def NP_previous(self):
         """ one trace before"""
-        aaa = 2
+        i = int(self.NP_edit_number.text())
+        if i > 0:
+            self.NP_edit_number.setText(str(i-1))
+            self.NP_making_traces()
 
     def NP_next(self):
         """ Proceed to next trace"""
-        aaa = 3
+        i = int(self.NP_edit_number.text())
+        print(self.fixing_number, "fixing number")
+        if i+1 < len(self.realnumbers):
+            i = int(self.NP_edit_number.text())
+            self.NP_edit_number.setText(str(i+1))
+            self.NP_making_traces()
 
     def NP_subtract(self):
         """ Subtract both images and gives you the final version"""
@@ -1511,7 +1519,12 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         """ Create the trace where the LinearRegionItem will work"""
         try:
             i = int(self.NP_edit_number.text())
-            moltrace = self.molRoi[i].getArrayRegion(self.data,
+            self.realnumbers = []
+            for j in np.arange(0, self.fixing_number):
+                if j not in self.removerois:
+                    self.realnumbers.append(j)
+            print("realnumbers", self.realnumbers)
+            moltrace = self.molRoi[self.realnumbers[i]].getArrayRegion(self.data,
                                                     self.imv.imageItem,
                                                     axes=(1,2),
                                                     returnMappedCoords=False)
