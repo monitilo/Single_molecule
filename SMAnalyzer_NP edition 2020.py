@@ -93,15 +93,22 @@ from pyqtgraph.dockarea.Dock import DockLabel
 # %% Change the colors of the Dock tabs
 def updateStylePatched(self):
     r = '3px'
-    if self.dim:
-        fg = '#b0b0b0'
-        bg = '#94f5bb'
-        border = '#94f5bb'
-#        border = '#7cf3ac'
+    if self.dim:  # below tab (not clicked)
+        fg = '#b0b0b0'  #grey letters
+#        bg = '#94f5bb' # ligth green bg
+#        border = '#94f5bb'
+
+        bg = '#a8b3ed' # ligth Blue bg
+        border = '#a8b3ed'
+
     else:
-        fg = '#fff'
-        bg = '#10b151'
-        border = '#10b151'
+#        fg = '#fff'  # white ?
+#        bg = '#10b151' # Green
+#        border = '#10b151'
+        fg = '#fff'  # white ?
+        bg = '#0e2bcc' # Blue
+        border = '#0e2bcc'
+        
 
     if self.orientation == 'vertical':
         self.vStyle = """DockLabel {
