@@ -70,6 +70,7 @@ to subdivide all the frames in this amount of steps and make a full histogram
 of all the detected spots. It applies both filters: bg; gauss; bg again.
 
 """
+import sys
 
 import numpy as np
 from pyqtgraph.Qt import QtCore, QtGui
@@ -190,6 +191,12 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.edit_save.setToolTip('Selec a name to save the data.\
               The name automatically changes to not replace the previous one')
 
+        self.label_dir_save = QtGui.QPushButton('Save folder')
+#        self.label_dir_save.resize(self.label_dir_save.sizeHint())
+        self.edit_dir_save = QtGui.QLineEdit(os.path.split(sys.argv[0])[0])
+        self.edit_dir_save.resize(self.edit_dir_save.sizeHint())
+        self.edit_dir_save.setToolTip('Selec the folder where save the data')
+
         # Create a grid layout to manage the widgets size and position
 #        self.layout = QtGui.QGridLayout()
 #        self.w.setLayout(self.layout)
@@ -250,6 +257,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         self.viewer_grid.addWidget(self.imv,               1, 4, 16, 16)
 
+        self.viewer_grid.addWidget(self.label_dir_save,          17, 4, 1, 5)
+        self.viewer_grid.addWidget(self.edit_dir_save,          17, 9, 1, 10)
+
         self.trace_grid.addWidget(self.trace_widget,      1, 4, 6, 6)
 
         self.post_grid.addWidget(self.see_labels_button,   3, 25, 1, 2)
@@ -273,7 +283,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.btn5.clicked.connect(self.showVideo)
         self.btn6.clicked.connect(self.detectMaxima)
         self.btn7.clicked.connect(self.exportTraces_or_images)
-        
+
+        self.label_dir_save.clicked.connect(self.save_folder_select)
+
         self.btn_images.clicked.connect(self.image_analysis)
         self.btn_small_roi.clicked.connect(self.create_small_ROI)
         self.btn_gauss_fit.clicked.connect(self.gaussian_fit_ROI)
@@ -403,6 +415,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             self.file_path = self.f
             print("Choosed path: \n", self.file_path, "\n")
 #            self.edit_save.setText(self.file_path[:-4])
+            file_name = os.path.split(self.file_path)[1][:-4]
 
             if self.f[-4:] == ".jpg":  # in case I want one picture
 
@@ -447,6 +460,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 self.maxThreshEdit.setText(str(np.mean(self.data[1,:,:]))[:7])
 
 
+            self.edit_save.setText(file_name)
             # Delete existing ROIs
             self.deleteROI()
             self.clear_all()
@@ -479,6 +493,23 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             self.frame_line.setPos(int(self.meanStartEdit.text()))
         except:
             pass
+
+    def save_folder_select(self):
+        """Select a folder to save """
+
+        # Remove annoying empty window
+        root = Tk()
+        root.withdraw()
+
+        # Select image from file
+        self.folder = filedialog.askdirectory()
+
+        if not self.folder:
+            print("You choosed nothing")
+        else:
+#            self.file_path = self.f
+#            print("Choosed path: \n", self.folder, "\n")
+             self.edit_dir_save.setText(self.folder)
 
     def createROI(self):  # connected to Create ROI (btn2)
         """ create a big ROI to select the area to make the analysis
@@ -1197,7 +1228,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         N = 0
         number = ""
-        self.custom_name  = str(self.edit_save.text()) + "_"
+        self.custom_name  = str(self.edit_dir_save.text()) +"/"+ str(self.edit_save.text()) + "_"
 
         if what == "trace":
             b = self.traces
@@ -1342,7 +1373,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         N = 0
         number = ""
-        self.custom_name  = str(self.edit_save.text()) + "_"
+        self.custom_name  = str(self.edit_dir_save.text()) +"/"+ str(self.edit_save.text()) + "_"
 
         histo_file_name = self.custom_name  + 'histogram-' + str(len(h))+number+ '.txt'
         while os.path.isfile(histo_file_name):
