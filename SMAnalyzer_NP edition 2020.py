@@ -1,5 +1,6 @@
+#pyqtgraph.examples.run()
 """
-@author: Rodrigo, the one who never doment his code
+@author: Rodrigo, the one who never comment his codes
 @Remastered by: German, the non-serious commenter
 
 
@@ -106,8 +107,12 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         # Create ImageView
         self.imv = pg.ImageView()
+        self.imv_TEST1 = pg.ImageView()
+        self.imv_TEST2 = pg.ImageView()
+        self.imv_NPsub = pg.ImageView()
 
         self.trace_widget = pg.GraphicsLayoutWidget()
+        self.NP_trace_widget = pg.GraphicsLayoutWidget()
 
         # Create buttons
         self.btn1 = QtGui.QPushButton('Load Image')
@@ -197,6 +202,36 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.edit_dir_save.resize(self.edit_dir_save.sizeHint())
         self.edit_dir_save.setToolTip('Selec the folder where save the data')
 
+
+# NP_wid_grid Buttons
+
+        self.btn_NP_analyse = QtGui.QPushButton('Np analysis')
+#        self.btn_NP_analyse.setStyleSheet(
+#                "QPushButton { background-color: rgb(150, 200, 10); }")
+        self.btn_NP_analyse.setToolTip('Click use the selected numered rois \
+                                       for NP analysis')
+
+        self.btn_NP_previous = QtGui.QPushButton('Previous')
+        self.btn_NP_previous.setToolTip('Go to previous spot')
+
+        self.btn_NP_next = QtGui.QPushButton('Next')
+        self.btn_NP_next.setToolTip('Go to next spot')
+
+        self.btn_NP_subtract = QtGui.QPushButton('Subtract')
+        self.btn_NP_subtract.setToolTip('Subtract both pictures, \
+                                         Geen - red AVG')
+# TENDRIA QUE PONERLO EN OTRA VENTANA MAS!?
+
+        self.btn_NP_save= QtGui.QPushButton('Save (?All?)')
+        self.btn_NP_save.setToolTip('To save the picture/s')
+
+# To know what spot I'm analizing now.
+        self.NP_label_number = QtGui.QLabel('Spot number')
+        self.NP_label_number.resize(self.NP_label_number.sizeHint())
+        self.NP_edit_number = QtGui.QLineEdit('0')
+        self.NP_edit_number.setFixedWidth(30)
+
+
         # Create a grid layout to manage the widgets size and position
 #        self.layout = QtGui.QGridLayout()
 #        self.w.setLayout(self.layout)
@@ -204,6 +239,14 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.viewer_grid = QtGui.QGridLayout()
         self.viewer_wid = QtGui.QWidget()
         self.viewer_wid.setLayout(self.viewer_grid)
+
+        self.viewer_NP_grid = QtGui.QGridLayout()
+        self.viewer_NP = QtGui.QWidget()
+        self.viewer_NP.setLayout(self.viewer_NP_grid)
+
+        self.viewer_NPsub_grid = QtGui.QGridLayout()
+        self.viewer_NPsub = QtGui.QWidget()
+        self.viewer_NPsub.setLayout(self.viewer_NPsub_grid)
 
         self.trace_grid = QtGui.QGridLayout()
         self.trace_wid = QtGui.QWidget()
@@ -216,6 +259,14 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.post_grid = QtGui.QGridLayout()
         self.post_wid = QtGui.QWidget()
         self.post_wid.setLayout(self.post_grid)
+
+        self.NP_wid_grid = QtGui.QGridLayout()
+        self.NP_wid = QtGui.QWidget()
+        self.NP_wid.setLayout(self.NP_wid_grid)
+
+        self.NP_trace_grid = QtGui.QGridLayout()
+        self.NP_trace_wid = QtGui.QWidget()
+        self.NP_trace_wid.setLayout(self.NP_trace_grid)
 
         # Add widgets to the layout in their proper positions 
         #                                       (-Y, X, Y_width ,X_width)
@@ -260,7 +311,30 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.viewer_grid.addWidget(self.label_dir_save,          17, 4, 1, 5)
         self.viewer_grid.addWidget(self.edit_dir_save,          17, 9, 1, 10)
 
+#viewer_NP_grid
+        self.viewer_NP_grid.addWidget(QtGui.QLabel('Left (Green) AVG'),  0, 4, 1, 5)
+        self.viewer_NP_grid.addWidget(self.imv_TEST1,             1, 4, 8, 8)
+        self.viewer_NP_grid.addWidget(QtGui.QLabel('Rigth (Red) AVG'),    9, 4, 1, 5)
+        self.viewer_NP_grid.addWidget(self.imv_TEST2,            10, 4, 8, 8)
+
+        self.viewer_NPsub_grid.addWidget(QtGui.QLabel('Subtraction'), 0, 4, 1, 5)
+        self.viewer_NPsub_grid.addWidget(self.imv_NPsub,            1, 4, 8, 8)
+
+        self.NP_trace_grid.addWidget(self.NP_trace_widget,      1, 4, 6, 6)
+
+
+        self.NP_wid_grid.addWidget(self.btn_NP_analyse,   4, 4, 1, 2)
+        self.NP_wid_grid.addWidget(self.btn_NP_subtract,  5, 4, 1, 2)
+
+        self.NP_wid_grid.addWidget(self.btn_NP_previous,  6, 4, 1, 2)
+        self.NP_wid_grid.addWidget(self.btn_NP_next,      6, 6, 1, 2)
+        self.NP_wid_grid.addWidget(self.NP_label_number,  7, 4, 1, 1)
+        self.NP_wid_grid.addWidget(self.NP_edit_number,   7, 5, 1, 1)
+        self.NP_wid_grid.addWidget(self.btn_NP_save,      8, 5, 1, 2)
+
+
         self.trace_grid.addWidget(self.trace_widget,      1, 4, 6, 6)
+
 
         self.post_grid.addWidget(self.see_labels_button,   3, 25, 1, 2)
         self.post_grid.addWidget(self.btn_small_roi,       4, 25, 1, 1)
@@ -297,6 +371,10 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         
         self.btn99_clearall.clicked.connect(self.clear_all)
 
+
+        self.btn_NP_analyse.clicked.connect(self.NP_making_traces)
+
+
         # automatic action when you edit the number 
         self.meanStartEdit.textEdited.connect(self.update_image)
 
@@ -323,22 +401,39 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.dockArea = dockArea
         grid.addWidget(self.dockArea)
 
+# it is a total mess because "below" is not working, so I ned to use "above"
+        NPsubviewDock = Dock('NP Subtaction', size=(300, 50))
+        NPsubviewDock.addWidget(self.viewer_NPsub)
+        self.dockArea.addDock(NPsubviewDock)
+
+        NPDock = Dock('NP stuff', size=(1, 1))
+        NPDock.addWidget(self.NP_wid)
+        self.dockArea.addDock(NPDock, "right", NPsubviewDock)
+
+        NPviewDock = Dock('NP viewer', size=(1, 1))
+        NPviewDock.addWidget(self.viewer_NP)
+        self.dockArea.addDock(NPviewDock, "left", NPsubviewDock)
+
+        NPtraceDock = Dock('NP funny Trace', size=(100, 10))
+        NPtraceDock.addWidget(self.NP_trace_wid)
+        self.dockArea.addDock(NPtraceDock, "bottom", NPDock)
+
         viewDock = Dock('viewbox', size=(300, 50))
         viewDock.addWidget(self.viewer_wid)
 #        viewDock.hideTitleBar()
-        self.dockArea.addDock(viewDock)
+        self.dockArea.addDock(viewDock, "above", NPsubviewDock)
 
         postDock = Dock('posDetection', size=(1, 1))
         postDock.addWidget(self.post_wid)
-        self.dockArea.addDock(postDock, "right", viewDock)
+        self.dockArea.addDock(postDock, "above", NPDock)
 
         optionsDock = Dock('Load options', size=(1, 1))
         optionsDock.addWidget(self.optios_wid)
-        self.dockArea.addDock(optionsDock, "left", viewDock)
+        self.dockArea.addDock(optionsDock, "above", NPviewDock)
 
         traceDock = Dock('Live Trace', size=(100, 10))
         traceDock.addWidget(self.trace_wid)
-        self.dockArea.addDock(traceDock, "bottom", postDock)
+        self.dockArea.addDock(traceDock, "above", NPtraceDock)
 
 #'bottom', 'top', 'left', 'right', 'above', or 'below'
 
@@ -795,6 +890,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             self.smallroi.sigClicked.connect(self.small_ROI_to_new_ROI)
             if not self.JPG:
                 self.smallroi.sigRegionChanged.connect(self.making_traces)
+#                self.smallroi.sigRegionChanged.connect(self.NP_making_traces)
         except:
             pass
 
@@ -1327,6 +1423,89 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 N += 1
             exporter.export(png_name)
             print( "\n Picture exported as", png_name)
+# %% NP definitions
+
+    def NP_anaylasing(self):
+        """ Starting from spot 0, plot the trace in the new NP_trace window \
+        and let you select the regions and next spots"""
+        aaa = 1
+
+    def NP_previous(self):
+        """ one trace before"""
+        aaa = 2
+
+    def NP_next(self):
+        """ Proceed to next trace"""
+        aaa = 3
+
+    def NP_subtract(self):
+        """ Subtract both images and gives you the final version"""
+        aaa = 4
+
+    def NP_leftAVG(self):
+        """ Connected from left LinearRegionItem, AVG the frames, \
+        and plot the small roi area"""
+        aaa = 5
+
+    def NP_rightAVG(self):
+        """ Connected from right LinearRegionItem, AVG the frames, \
+        and plot the small roi area"""
+        aaa = 6
+
+    def NP_making_traces(self):
+        """ Create the trace where the LinearRegionItem will work"""
+        try:
+            i = int(self.NP_edit_number.text())
+            moltrace = self.molRoi[i].getArrayRegion(self.data,
+                                                    self.imv.imageItem,
+                                                    axes=(1,2),
+                                                    returnMappedCoords=False)
+
+            valor = np.sum(moltrace, axis=(1,2)) / float(self.time_adquisitionEdit.text())
+            self.NP_curve.setData(np.linspace(0,moltrace.shape[0],moltrace.shape[0]),
+                                        valor,
+                                        pen=pg.mkPen(color='y', width=1),
+                                        shadowPen=pg.mkPen('w', width=3))
+#            self.frame_line.setPos(int(self.meanStartEdit.text()))
+
+        except:
+            print("Exepteo!!")
+            self.NP_p2 = self.NP_trace_widget.addPlot(row=2, col=1, title="NP Trace")
+            self.NP_p2.showGrid(x=True, y=True)
+            self.NP_curve = self.NP_p2.plot(open='y')
+#            self.frame_line = pg.InfiniteLine(angle=90,
+#                                          movable=True,
+#                                          pen=pg.mkPen(color=(60,60,200),
+#                                          width=2))
+#            self.NP_p2.addItem(self.frame_line)
+#            self.frame_line.sigPositionChanged.connect(self.moving_frame)
+
+            starting = int(0)
+            ending = int(moltrace.shape[0])
+
+            self.lrmax = pg.LinearRegionItem([starting,(starting+ending)//8], pen='g',
+                                              bounds=[0, moltrace.shape[0]],
+                                              brush=(5,200,5,25),
+                                              hoverBrush=(50,200,50,50))
+            self.lrmax.setZValue(10)
+            self.NP_p2.addItem(self.lrmax, ignoreBounds=True)
+
+            self.lrmin = pg.LinearRegionItem([ending - ((starting+ending)//4), ending], pen='r',
+                                              bounds=[0, moltrace.shape[0]],
+                                              brush=(200,50,50,25),
+                                              hoverBrush=(200,50,50,50))
+            self.lrmin.setZValue(10)
+            self.NP_p2.addItem(self.lrmin, ignoreBounds=True)
+
+    def NP_save(self):
+        """ Save the final image, Or all of them. or the tiff data. Do not know."""
+        aaa = 8
+
+    def NP_number_update(self):
+        """ Update the number of the spot in display."""
+        aaa = 9
+
+
 
 # %% out of program
     def automatic_crazy_start(self): # connected to crazy go (crazyStepButton)
