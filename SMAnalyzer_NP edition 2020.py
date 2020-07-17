@@ -94,10 +94,11 @@ from pyqtgraph.dockarea.Dock import DockLabel
 def updateStylePatched(self):
     r = '3px'
     if self.dim:  # below tab (not clicked)
-        fg = '#b0b0b0'  #grey letters
+#        fg = '#b0b0b0' #grey letters
         bg = '#94f5bb' # ligth green bg
         border = '#94f5bb'
-#        fg = '#0c0d0c'  #Black letters
+#        fg = '#0c0d0c' #Black letters
+        fg = '#404241' # between black and grey
 #        bg = '#a8b3ed' # ligth Blue bg
         border = '#a8b3ed'
 
@@ -107,7 +108,7 @@ def updateStylePatched(self):
 #        border = '#10b151'
         bg = '#0e2bcc' # Blue
         border = '#0e2bcc'
-        
+
 
     if self.orientation == 'vertical':
         self.vStyle = """DockLabel {
@@ -161,9 +162,10 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         # Create ImageView
         self.imv = pg.ImageView()
-        self.imv_TEST1 = pg.ImageView()
-        self.imv_TEST2 = pg.ImageView()
+        self.imv_left = pg.ImageView()
+        self.imv_right = pg.ImageView()
         self.imv_NPsub = pg.ImageView()
+
 
         self.trace_widget = pg.GraphicsLayoutWidget()
         self.NP_trace_widget = pg.GraphicsLayoutWidget()
@@ -239,7 +241,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.time_adquisitionLabel = QtGui.QLabel('Adquisition time (ms)')
         self.time_adquisitionEdit = QtGui.QLineEdit('100')
 
-        self.see_labels_button = QtGui.QCheckBox('Labels? (ctrl+y)')
+        self.see_labels_button = QtGui.QCheckBox('Labels? (ctrl+q)')
         self.see_labels_button.setChecked(True)
 
 
@@ -250,9 +252,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.edit_save.setToolTip('Selec a name to save the data.\
               The name automatically changes to not replace the previous one')
 
-        self.label_dir_save = QtGui.QPushButton('Save folder')
+        self.label_dir_save = QtGui.QPushButton('Choose Save folder')
 #        self.label_dir_save.resize(self.label_dir_save.sizeHint())
-        self.edit_dir_save = QtGui.QLineEdit(os.path.split(sys.argv[0])[0])
+        self.edit_dir_save = QtGui.QLabel(os.path.split(sys.argv[0])[0])
         self.edit_dir_save.resize(self.edit_dir_save.sizeHint())
         self.edit_dir_save.setToolTip('Selec the folder where save the data')
 
@@ -275,15 +277,26 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.btn_NP_subtract.setToolTip('Subtract both pictures, \
                                          Geen - red AVG')
 # TENDRIA QUE PONERLO EN OTRA VENTANA MAS!?
-
-        self.btn_NP_save= QtGui.QPushButton('Save (?All?)')
-        self.btn_NP_save.setToolTip('To save the picture/s')
+        self.btn_NP_saving_folder = QtGui.QPushButton('Choose saving folder')
+        self.NP_label_saving_folder = QtGui.QLabel(os.path.split(sys.argv[0])[0])
+        self.NP_edit_dir_save = QtGui.QLineEdit('NP test')
+#        self.NP_edit_dir_save.resize(self.edit_dir_save.sizeHint())
+        self.NP_label_counter = QtGui.QLabel('_0')
+        self.btn_NP_save = QtGui.QPushButton('Save this view')
+#        self.btn_NP_save.setToolTip('To save the picture/s')
 
 # To know what spot I'm analizing now.
         self.NP_label_number = QtGui.QLabel('Spot number')
         self.NP_label_number.resize(self.NP_label_number.sizeHint())
         self.NP_edit_number = QtGui.QLineEdit('0')
         self.NP_edit_number.setFixedWidth(30)
+
+        self.NP_label_rightavg = QtGui.QLabel('rigth avg')
+        self.NP_label_rightavg.setFixedWidth(300)
+        self.NP_label_leftavg = QtGui.QLabel('left avg')
+        self.NP_label_leftavg.setFixedWidth(300)
+        self.NP_labe_lstep = QtGui.QLabel('left avg')
+        self.NP_labe_lstep.setFixedWidth(300)
 
 
         # Create a grid layout to manage the widgets size and position
@@ -366,25 +379,30 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.viewer_grid.addWidget(self.edit_dir_save,          17, 9, 1, 10)
 
 #viewer_NP_grid
-        self.viewer_NP_grid.addWidget(QtGui.QLabel('Left (Green) AVG'),  0, 4, 1, 5)
-        self.viewer_NP_grid.addWidget(self.imv_TEST1,             1, 4, 8, 8)
-        self.viewer_NP_grid.addWidget(QtGui.QLabel('Rigth (Red) AVG'),    9, 4, 1, 5)
-        self.viewer_NP_grid.addWidget(self.imv_TEST2,            10, 4, 8, 8)
+        self.viewer_NP_grid.addWidget(self.NP_label_leftavg,    0, 4, 1, 5)
+        self.viewer_NP_grid.addWidget(self.imv_left,            1, 4, 8, 8)
+        self.viewer_NP_grid.addWidget(self.NP_label_rightavg,   9, 4, 1, 5)
+        self.viewer_NP_grid.addWidget(self.imv_right,          10, 4, 8, 8)
 
-        self.viewer_NPsub_grid.addWidget(QtGui.QLabel('Subtraction'), 0, 4, 1, 5)
-        self.viewer_NPsub_grid.addWidget(self.imv_NPsub,            1, 4, 8, 8)
+        self.viewer_NPsub_grid.addWidget(self.NP_labe_lstep,       0, 4, 1, 2)
+        self.viewer_NPsub_grid.addWidget(self.btn_NP_subtract,    0, 16, 1, 4)
+        self.viewer_NPsub_grid.addWidget(self.imv_NPsub,         1, 4, 16, 16)
+        
+        self.viewer_NPsub_grid.addWidget(self.btn_NP_saving_folder,    17, 4, 1, 1)
+        self.viewer_NPsub_grid.addWidget(self.NP_label_saving_folder,  17, 5, 1, 3)
+        self.viewer_NPsub_grid.addWidget(self.NP_edit_dir_save,  17, 8, 1, 6)
+        self.viewer_NPsub_grid.addWidget(self.NP_label_counter,  17, 14, 1, 1)
+        self.viewer_NPsub_grid.addWidget(self.btn_NP_save,       17, 16, 1, 4)
 
         self.NP_trace_grid.addWidget(self.NP_trace_widget,      1, 4, 6, 6)
 
 
         self.NP_wid_grid.addWidget(self.btn_NP_analyse,   4, 4, 1, 2)
-        self.NP_wid_grid.addWidget(self.btn_NP_subtract,  5, 4, 1, 2)
 
         self.NP_wid_grid.addWidget(self.btn_NP_previous,  6, 4, 1, 2)
         self.NP_wid_grid.addWidget(self.btn_NP_next,      6, 6, 1, 2)
         self.NP_wid_grid.addWidget(self.NP_label_number,  7, 4, 1, 1)
         self.NP_wid_grid.addWidget(self.NP_edit_number,   7, 5, 1, 1)
-        self.NP_wid_grid.addWidget(self.btn_NP_save,      8, 5, 1, 2)
 
 
         self.trace_grid.addWidget(self.trace_widget,      1, 4, 6, 6)
@@ -414,6 +432,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         self.label_dir_save.clicked.connect(self.save_folder_select)
 
+
         self.btn_images.clicked.connect(self.image_analysis)
         self.btn_small_roi.clicked.connect(self.create_small_ROI)
         self.btn_gauss_fit.clicked.connect(self.gaussian_fit_ROI)
@@ -425,10 +444,17 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         
         self.btn99_clearall.clicked.connect(self.clear_all)
 
-
+# NP buttons conections
         self.btn_NP_analyse.clicked.connect(self.NP_making_traces)
         self.btn_NP_previous.clicked.connect(self.NP_previous)
         self.btn_NP_next.clicked.connect(self.NP_next)
+        self.btn_NP_subtract.clicked.connect(self.NP_subtract)
+        self.btn_NP_saving_folder.clicked.connect(self.NP_save_folder_select)
+        self.btn_NP_save.clicked.connect(self.NP_save_subimage)
+
+        self.NP_edit_number.textEdited.connect(self.NP_making_traces)
+        self.NP_edit_number.textChanged.connect(self.NP_label_to_name)
+
 
         # automatic action when you edit the number 
         self.meanStartEdit.textEdited.connect(self.update_image)
@@ -536,11 +562,16 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         self.seelabels_Action = QtGui.QAction(self)
         QtGui.QShortcut(
-            QtGui.QKeySequence('ctrl+y'), self, self.see_labels_shortcut)
+            QtGui.QKeySequence('ctrl+q'), self, self.see_labels_shortcut)
 
         self.makehistogram_Action = QtGui.QAction(self)
         QtGui.QShortcut(
             QtGui.QKeySequence('ctrl+h'), self, self.make_histogram)
+
+        self.NP_subtract_Action = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('ctrl+s'), self, self.NP_subtract)
+
 
         np.warnings.filterwarnings('ignore')
 
@@ -611,6 +642,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
 
             self.edit_save.setText(file_name)
+#            completename = str(self.NP_edit_dir_save.text()) +"/"+ str(self.edit_save.text())
+            self.NP_edit_dir_save.setText(file_name)
             # Delete existing ROIs
             self.deleteROI()
             self.clear_all()
@@ -1038,10 +1071,13 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
     def relabel_ROI(self):  # from the new version (relabel_new_ROI)
         """ fix the numeration and showing rois when you add or remove them"""
         p = 0
+        self.realnumbers = []
         for i in np.arange(0, self.fixing_number):
             if i not in self.removerois:
+                self.realnumbers.append(i)
                 self.label[i].setText(text=str(p), color='g')
                 p+=1
+        print("realnumbers", self.realnumbers)
 
     def see_labels_shortcut(self):
         if self.see_labels_button.isChecked():
@@ -1480,10 +1516,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             print( "\n Picture exported as", png_name)
 # %% NP definitions
 
-    def NP_anaylasing(self):
-        """ Starting from spot 0, plot the trace in the new NP_trace window \
-        and let you select the regions and next spots"""
-        aaa = 1
+    def NP_label_to_name(self):
+        self.NP_label_counter.setText("_" + self.NP_edit_number.text())
+
 
     def NP_previous(self):
         """ one trace before"""
@@ -1495,84 +1530,155 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
     def NP_next(self):
         """ Proceed to next trace"""
         i = int(self.NP_edit_number.text())
-        print(self.fixing_number, "fixing number")
+#        print(self.fixing_number, "fixing number")
         if i+1 < len(self.realnumbers):
-            i = int(self.NP_edit_number.text())
             self.NP_edit_number.setText(str(i+1))
             self.NP_making_traces()
 
     def NP_subtract(self):
         """ Subtract both images and gives you the final version"""
-        aaa = 4
+        self.NPsubimage = self.leftNPimage - self.rightNPimage
+        plot_with_colorbar(self.imv_NPsub, self.NPsubimage)
 
     def NP_leftAVG(self):
         """ Connected from left LinearRegionItem, AVG the frames, \
         and plot the small roi area"""
-        aaa = 5
+        i = int(self.NP_edit_number.text())
+        self.lrmax.setZValue(10)
+        leftminX, leftmaxX = self.lrmax.getRegion()
+#        self.avgmax = np.nanmean(self.moltrace[int(minX):int(maxX), (int(self.traceSlider.value()))])
+        self.avgmax = np.mean(self.moltrace[int(leftminX):int(leftmaxX),:,:])
+        self.NP_label_leftavg.setText("<span style='font-size: 12pt'> <span style='color: green'>LeftMean=%0.1f</span>" % (self.avgmax))
+        self.leftNPimage = self.molRoi[self.realnumbers[i]].getArrayRegion(np.mean(
+                self.data[int(leftminX):int(leftmaxX),:,:], axis=0),
+                                                        self.imv.imageItem)#,
+#                                                        axes=(1,2),
+#                                                        returnMappedCoords=False)
+        plot_with_colorbar(self.imv_left, self.leftNPimage)
 
     def NP_rightAVG(self):
         """ Connected from right LinearRegionItem, AVG the frames, \
         and plot the small roi area"""
-        aaa = 6
+        i = int(self.NP_edit_number.text())
+        self.lrmin.setZValue(10)
+        rightminX, rightmaxX = self.lrmin.getRegion()
+        self.avgmin = np.mean(self.moltrace[int(rightminX):int(rightmaxX),:,:])
+        self.NP_label_rightavg.setText("<span style='font-size: 12pt'> <span style='color: red'>RigthMean=%0.1f</span>" % (self.avgmin))
+        self.rightNPimage = self.molRoi[self.realnumbers[i]].getArrayRegion(np.mean(
+                self.data[int(rightminX):int(rightmaxX),:,:], axis=0),
+                                                        self.imv.imageItem)#,
+#                                                        axes=(1,2),
+#                                                        returnMappedCoords=False)
+        plot_with_colorbar(self.imv_right, self.rightNPimage)
+
+    def NP_stepAVG(self):
+        """ Subtract both images and gives you the final version"""
+        try:
+            self.stepintensity = (self.avgmax-self.avgmin)
+            self.NP_labe_lstep.setText("<span style='font-size: 12pt'> <span style='color: blue'>Step=%0.1f</span>" % self.stepintensity)
+        except:
+            pass
 
     def NP_making_traces(self):
         """ Create the trace where the LinearRegionItem will work"""
-        try:
-            i = int(self.NP_edit_number.text())
-            self.realnumbers = []
-            for j in np.arange(0, self.fixing_number):
-                if j not in self.removerois:
-                    self.realnumbers.append(j)
-            print("realnumbers", self.realnumbers)
-            moltrace = self.molRoi[self.realnumbers[i]].getArrayRegion(self.data,
-                                                    self.imv.imageItem,
-                                                    axes=(1,2),
-                                                    returnMappedCoords=False)
+        i = int(self.NP_edit_number.text())
+        if i < len(self.realnumbers):
+            try:
+    
+    #            self.realnumbers = []
+    #            for j in np.arange(0, self.fixing_number):
+    #                if j not in self.removerois:
+    #                    self.realnumbers.append(j)
+    #            print("realnumbers", self.realnumbers)
+                self.moltrace = self.molRoi[self.realnumbers[i]].getArrayRegion(self.data,
+                                                        self.imv.imageItem,
+                                                        axes=(1,2),
+                                                        returnMappedCoords=False)
 
-            valor = np.sum(moltrace, axis=(1,2)) / float(self.time_adquisitionEdit.text())
-            self.NP_curve.setData(np.linspace(0,moltrace.shape[0],moltrace.shape[0]),
-                                        valor,
-                                        pen=pg.mkPen(color='y', width=1),
-                                        shadowPen=pg.mkPen('w', width=3))
-#            self.frame_line.setPos(int(self.meanStartEdit.text()))
+                valor = np.sum(self.moltrace, axis=(1,2)) / float(self.time_adquisitionEdit.text())
+                self.NP_curve.setData(np.linspace(0,self.moltrace.shape[0],self.moltrace.shape[0]),
+                                            valor,
+                                            pen=pg.mkPen(color='y', width=1),
+                                            shadowPen=pg.mkPen('w', width=3))
+    #            self.frame_line.setPos(int(self.meanStartEdit.text()))
+                self.NP_leftAVG()
+                self.NP_rightAVG()
+                self.NP_stepAVG()
+                self.NP_subtract()
 
-        except:
-            print("Exepteo!!")
-            self.NP_p2 = self.NP_trace_widget.addPlot(row=2, col=1, title="NP Trace")
-            self.NP_p2.showGrid(x=True, y=True)
-            self.NP_curve = self.NP_p2.plot(open='y')
-#            self.frame_line = pg.InfiniteLine(angle=90,
-#                                          movable=True,
-#                                          pen=pg.mkPen(color=(60,60,200),
-#                                          width=2))
-#            self.NP_p2.addItem(self.frame_line)
-#            self.frame_line.sigPositionChanged.connect(self.moving_frame)
+            except:
+                print("Click again please")
+                self.NP_p2 = self.NP_trace_widget.addPlot(row=2, col=1, title="NP Trace")
+                self.NP_p2.showGrid(x=True, y=True)
+                self.NP_curve = self.NP_p2.plot(open='y')
+    #            self.frame_line = pg.InfiniteLine(angle=90,
+    #                                          movable=True,
+    #                                          pen=pg.mkPen(color=(60,60,200),
+    #                                          width=2))
+    #            self.NP_p2.addItem(self.frame_line)
+    #            self.frame_line.sigPositionChanged.connect(self.moving_frame)
+    
+                starting = int(0)
+                ending = int(self.moltrace.shape[0])
+    
+                self.lrmax = pg.LinearRegionItem([starting,(starting+ending)//8], pen='g',
+                                                  bounds=[0, self.moltrace.shape[0]],
+                                                  brush=(5,200,5,25),
+                                                  hoverBrush=(50,200,50,50))
+                self.lrmax.setZValue(10)
+                self.NP_p2.addItem(self.lrmax, ignoreBounds=True)
+    
+                self.lrmin = pg.LinearRegionItem([ending - ((starting+ending)//4), ending], pen='r',
+                                                  bounds=[0, self.moltrace.shape[0]],
+                                                  brush=(200,50,50,25),
+                                                  hoverBrush=(200,50,50,50))
+                self.lrmin.setZValue(10)
+                self.NP_p2.addItem(self.lrmin, ignoreBounds=True)
+                self.lrmax.sigRegionChanged.connect(self.NP_leftAVG)
+                self.lrmin.sigRegionChanged.connect(self.NP_rightAVG)
+                self.lrmax.sigRegionChanged.connect(self.NP_stepAVG)
+                self.lrmin.sigRegionChanged.connect(self.NP_stepAVG)
+                self.NP_leftAVG()
+                self.NP_rightAVG()
+                self.NP_stepAVG()
 
-            starting = int(0)
-            ending = int(moltrace.shape[0])
 
-            self.lrmax = pg.LinearRegionItem([starting,(starting+ending)//8], pen='g',
-                                              bounds=[0, moltrace.shape[0]],
-                                              brush=(5,200,5,25),
-                                              hoverBrush=(50,200,50,50))
-            self.lrmax.setZValue(10)
-            self.NP_p2.addItem(self.lrmax, ignoreBounds=True)
-
-            self.lrmin = pg.LinearRegionItem([ending - ((starting+ending)//4), ending], pen='r',
-                                              bounds=[0, moltrace.shape[0]],
-                                              brush=(200,50,50,25),
-                                              hoverBrush=(200,50,50,50))
-            self.lrmin.setZValue(10)
-            self.NP_p2.addItem(self.lrmin, ignoreBounds=True)
-
-    def NP_save(self):
+        else:
+            print("Wrong number")
+    def NP_save_folder_select(self):
         """ Save the final image, Or all of them. or the tiff data. Do not know."""
-        aaa = 8
+        # Remove annoying empty window
+        root = Tk()
+        root.withdraw()
+        # Select image from file
+        self.folder = filedialog.askdirectory()
+        if not self.folder:
+            print("You choosed nothing")
+        else:
+#            completename = self.folder +"/"+ str(self.edit_save.text())
+            self.NP_label_saving_folder.setText(self.folder)
 
-    def NP_number_update(self):
-        """ Update the number of the spot in display."""
-        aaa = 9
+    def NP_save_subimage(self):
+        """ save the subtracted image in png. Exactly as it looks in the interface."""
+        N = 0
+        number = ""
+        custom_name = str(self.NP_label_saving_folder.text()) +"/"+ str(self.NP_edit_dir_save.text()) + str(self.NP_label_counter.text())
 
+        ratio = self.NPsubimage.shape[1]/self.NPsubimage.shape[0]
+        height = int(1920)
+        width = int(1920*ratio)
+        exporter = pg.exporters.ImageExporter(self.imv_NPsub.imageItem)
+        exporter.params.param('width').setValue(width, blockSignal=exporter.widthChanged)
+        exporter.params.param('height').setValue(height, blockSignal=exporter.heightChanged)
+        png_name = custom_name + '.png'
+        while os.path.isfile(png_name):
+#                print(png_name)
+            number = "("+ str(N) +")"
+            png_name = custom_name + number + '.png'
+#                print(png_name)
+            N += 1
+        exporter.export(png_name)
+        print( "\n NP exported as", png_name)
 
 
 # %% out of program
