@@ -267,10 +267,10 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.btn_NP_analyse.setToolTip('Click use the selected numered rois \
                                        for NP analysis')
 
-        self.btn_NP_previous = QtGui.QPushButton('Previous')
+        self.btn_NP_previous = QtGui.QPushButton('<-- Previous')
         self.btn_NP_previous.setToolTip('Go to previous spot')
 
-        self.btn_NP_next = QtGui.QPushButton('Next')
+        self.btn_NP_next = QtGui.QPushButton('Next -->')
         self.btn_NP_next.setToolTip('Go to next spot')
 
         self.btn_NP_subtract = QtGui.QPushButton('Subtract')
@@ -295,7 +295,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.NP_label_rightavg.setFixedWidth(300)
         self.NP_label_leftavg = QtGui.QLabel('left avg')
         self.NP_label_leftavg.setFixedWidth(300)
-        self.NP_labe_lstep = QtGui.QLabel('left avg')
+        self.NP_labe_lstep = QtGui.QLabel('Step (Green - Red)')
         self.NP_labe_lstep.setFixedWidth(300)
 
 
@@ -399,10 +399,10 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         self.NP_wid_grid.addWidget(self.btn_NP_analyse,   4, 4, 1, 2)
 
-        self.NP_wid_grid.addWidget(self.btn_NP_previous,  6, 4, 1, 2)
-        self.NP_wid_grid.addWidget(self.btn_NP_next,      6, 6, 1, 2)
-        self.NP_wid_grid.addWidget(self.NP_label_number,  7, 4, 1, 1)
-        self.NP_wid_grid.addWidget(self.NP_edit_number,   7, 5, 1, 1)
+        self.NP_wid_grid.addWidget(self.btn_NP_previous,  5, 4, 1, 2)
+        self.NP_wid_grid.addWidget(self.btn_NP_next,      5, 6, 1, 2)
+        self.NP_wid_grid.addWidget(self.NP_label_number,  6, 4, 1, 1)
+        self.NP_wid_grid.addWidget(self.NP_edit_number,   6, 5, 1, 1)
 
 
         self.trace_grid.addWidget(self.trace_widget,      1, 4, 6, 6)
@@ -518,7 +518,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
 #'bottom', 'top', 'left', 'right', 'above', or 'below'
 
-        self.setWindowTitle("Single Molecule Analizer")  # Nombre de la ventana
+        self.setWindowTitle(" Difocusing NP Single Molecule Analizer")  # Nombre de la ventana
         self.setGeometry(10, 40, 1600, 800)  # (PosX, PosY, SizeX, SizeY)
 
     # initialize  parameters. Remember, this is Just at start, never come here again.
