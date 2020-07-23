@@ -73,6 +73,8 @@ of all the detected spots. It applies both filters: bg; gauss; bg again.
 """
 import sys
 
+from PIL import Image
+
 import numpy as np
 from pyqtgraph.Qt import QtCore, QtGui
 import pyqtgraph as pg
@@ -282,7 +284,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.NP_edit_dir_save = QtGui.QLineEdit('NP test')
 #        self.NP_edit_dir_save.resize(self.edit_dir_save.sizeHint())
         self.NP_label_counter = QtGui.QLabel('_0')
-        self.btn_NP_save = QtGui.QPushButton('Save this view')
+        self.btn_NP_save = QtGui.QPushButton('Save All clicked options')
 #        self.btn_NP_save.setToolTip('To save the picture/s')
 
 # To know what spot I'm analizing now.
@@ -389,10 +391,10 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.viewer_NPsub_grid.addWidget(self.imv_NPsub,         1, 4, 16, 16)
         
         self.viewer_NPsub_grid.addWidget(self.btn_NP_saving_folder,    17, 4, 1, 1)
-        self.viewer_NPsub_grid.addWidget(self.NP_label_saving_folder,  17, 5, 1, 3)
-        self.viewer_NPsub_grid.addWidget(self.NP_edit_dir_save,  17, 8, 1, 6)
-        self.viewer_NPsub_grid.addWidget(self.NP_label_counter,  17, 14, 1, 1)
-        self.viewer_NPsub_grid.addWidget(self.btn_NP_save,       17, 16, 1, 4)
+        self.viewer_NPsub_grid.addWidget(self.NP_label_saving_folder,  17, 5, 1, 6)
+        self.viewer_NPsub_grid.addWidget(self.NP_edit_dir_save,  18, 5, 1, 6)
+        self.viewer_NPsub_grid.addWidget(self.NP_label_counter,  18, 14, 1, 1)
+        self.viewer_NPsub_grid.addWidget(self.btn_NP_save,       18, 16, 1, 4)
 
         self.NP_trace_grid.addWidget(self.NP_trace_widget,      1, 4, 6, 6)
 
@@ -1662,23 +1664,62 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         """ save the subtracted image in png. Exactly as it looks in the interface."""
         N = 0
         number = ""
-        custom_name = str(self.NP_label_saving_folder.text()) +"/"+ str(self.NP_edit_dir_save.text()) + str(self.NP_label_counter.text())
-
-        ratio = self.NPsubimage.shape[1]/self.NPsubimage.shape[0]
-        height = int(1920)
-        width = int(1920*ratio)
-        exporter = pg.exporters.ImageExporter(self.imv_NPsub.imageItem)
-        exporter.params.param('width').setValue(width, blockSignal=exporter.widthChanged)
-        exporter.params.param('height').setValue(height, blockSignal=exporter.heightChanged)
-        png_name = custom_name + '.png'
-        while os.path.isfile(png_name):
+        folder_name = str(self.NP_label_saving_folder.text()) + "/"
+        custom_name = str(self.NP_edit_dir_save.text())
+        windows_name = ""
+        label_name  = str(self.NP_label_counter.text())
+        final_name = folder_name +custom_name + windows_name + label_name
+        while os.path.isfile(custom_name):
 #                print(png_name)
             number = "("+ str(N) +")"
-            png_name = custom_name + number + '.png'
+            custom_name = custom_name + number
 #                print(png_name)
             N += 1
-        exporter.export(png_name)
-        print( "\n NP exported as", png_name)
+
+        data = self.NPsubimage
+        result = Image.fromarray(data.astype('uint16'))
+        result.save(r'{}.tiff'.format(final_name))
+
+        print( "\n NP image save as", final_name)
+
+    def NP_save_all_spots_UI_image(self):
+
+#        N = 0
+#        number = ""
+        folder_name = str(self.NP_label_saving_folder.text()) + "/"
+        custom_name = str(self.NP_edit_dir_save.text())
+        windows_name = "Full_picture_spots_"
+        label_name  = str(len(self.realnumbers))  # str(self.NP_label_counter.text())
+
+        final_name = folder_name +custom_name + windows_name + label_name
+
+        if os.path.isfile(final_name):
+            print("The file already exist")
+            buttonReply = QtGui.QMessageBox.question(self, "The file already exist",
+                                       'Want to replace?', QtGui.QMessageBox.Yes | QtGui.QMessageBox.No, QtGui.QMessageBox.No)
+#buttonReply = QMessageBox.question(self, 'PyQt5 message', "Do you like PyQt5?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            if buttonReply == QtGui.QMessageBox.Yes:
+                print('Yes clicked.')
+            else:
+                print('No clicked.')
+        else:
+            ratio = self.data.shape[1]/self.data.shape[0]
+            height = int(1920)
+            width = int(1920*ratio)
+            exporter = pg.exporters.ImageExporter(self.imv.imageItem)
+            exporter.params.param('width').setValue(width, blockSignal=exporter.widthChanged)
+            exporter.params.param('height').setValue(height, blockSignal=exporter.heightChanged)
+
+    #        while os.path.isfile(final_name):
+    ##                print(final_name)
+    #            number = "("+ str(N) +")"
+    #            final_name = folder_name +custom_name + windows_name + label_name + number
+    ##                print(final_name)
+    #            N += 1
+            exporter.export(final_name)
+            print( "\n Picture exported as", final_name)
+
+
 
 
 # %% out of program
