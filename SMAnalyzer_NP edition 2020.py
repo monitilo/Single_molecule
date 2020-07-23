@@ -300,7 +300,14 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.NP_labe_lstep = QtGui.QLabel('Step (Green - Red)')
         self.NP_labe_lstep.setFixedWidth(300)
 
-
+        self.NP_save_left_right_tic = QtGui.QCheckBox('save Left & right')
+        self.NP_save_left_right_tic.setChecked(True)
+        self.NP_save_subtraction_tic = QtGui.QCheckBox('Save subtraction')
+        self.NP_save_subtraction_tic.setChecked(True)
+        self.NP_save_full_image_tic = QtGui.QCheckBox('Save Full image')
+        self.NP_save_full_image_tic.setChecked(True)
+        self.NP_save_trace_tic = QtGui.QCheckBox('Save Trace')
+        self.NP_save_trace_tic.setChecked(True)
         # Create a grid layout to manage the widgets size and position
 #        self.layout = QtGui.QGridLayout()
 #        self.w.setLayout(self.layout)
@@ -399,7 +406,13 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.NP_trace_grid.addWidget(self.NP_trace_widget,      1, 4, 6, 6)
 
 
-        self.NP_wid_grid.addWidget(self.btn_NP_analyse,   4, 4, 1, 2)
+        self.NP_wid_grid.addWidget(self.btn_NP_analyse,   1, 4, 4, 2)
+
+        self.NP_wid_grid.addWidget(self.NP_save_subtraction_tic,   1, 6, 1, 1)
+        self.NP_wid_grid.addWidget(self.NP_save_left_right_tic,    2, 6, 1, 1)
+        self.NP_wid_grid.addWidget(self.NP_save_trace_tic,         3, 6, 1, 1)
+        self.NP_wid_grid.addWidget(self.NP_save_full_image_tic,    4, 6, 1, 1)
+
 
         self.NP_wid_grid.addWidget(self.btn_NP_previous,  5, 4, 1, 2)
         self.NP_wid_grid.addWidget(self.btn_NP_next,      5, 6, 1, 2)
@@ -452,7 +465,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.btn_NP_next.clicked.connect(self.NP_next)
         self.btn_NP_subtract.clicked.connect(self.NP_subtract)
         self.btn_NP_saving_folder.clicked.connect(self.NP_save_folder_select)
-        self.btn_NP_save.clicked.connect(self.NP_save_subimage)
+        self.btn_NP_save.clicked.connect(self.NP_save_whatever)
 
         self.NP_edit_number.textEdited.connect(self.NP_making_traces)
         self.NP_edit_number.textChanged.connect(self.NP_label_to_name)
@@ -1660,27 +1673,101 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 #            completename = self.folder +"/"+ str(self.edit_save.text())
             self.NP_label_saving_folder.setText(self.folder)
 
+
+    def NP_save_whatever(self):
+        """ save the subtracted image in png. Exactly as it looks in the interface."""
+#        N = 0
+#        number = ""
+#        folder_name = str(self.NP_label_saving_folder.text()) + "/"
+#        custom_name = str(self.NP_edit_dir_save.text())
+#        windows_name = ""
+#        label_name  = str(self.NP_label_counter.text())
+#        final_name = folder_name + custom_name + windows_name + label_name
+#
+#        while os.path.isfile(r'{}.tiff'.format(final_name)):
+##                print(png_name)
+#            number = "("+ str(N) +")"
+#            final_name = folder_name + custom_name + windows_name + label_name + number
+##                print(png_name)
+#            N += 1
+#
+#        data = self.NPsubimage
+#        result = Image.fromarray(data.astype('uint16'))
+#        result.save(r'{}.tiff'.format(final_name))
+        try:
+            if self.NP_save_subtraction_tic.isChecked():
+#                print("Subtracted image")
+                self.NP_save_subimage()
+#        except IOError as e:
+#            print("I/O error({0}): {1}".format(e.errno, e.strerror))
+#        try:
+            if self.NP_save_left_right_tic.isChecked():
+#                print("Left & Right")
+                self.NP_left_right_subimage()
+#        except IOError as e:
+#            print("I/O error({0}): {1}".format(e.errno, e.strerror))
+#        try:
+            if self.NP_save_trace_tic.isChecked():
+#                print("Trace")
+                self.NP_save_trace_UI_image()
+        except IOError as e:
+            print("I/O error({0}): {1}".format(e.errno, e.strerror))
+
+        try:
+            if self.NP_save_full_image_tic.isChecked():
+#              print("Full image:")
+                self.NP_save_all_spots_UI_image()
+        except IOError as e:
+            print("I/O error({0}): {1}".format(e.errno, e.strerror))
+
+
     def NP_save_subimage(self):
         """ save the subtracted image in png. Exactly as it looks in the interface."""
         N = 0
         number = ""
         folder_name = str(self.NP_label_saving_folder.text()) + "/"
         custom_name = str(self.NP_edit_dir_save.text())
-        windows_name = ""
+        windows_name = "_subtracted_"
         label_name  = str(self.NP_label_counter.text())
-        final_name = folder_name +custom_name + windows_name + label_name
-        while os.path.isfile(custom_name):
-#                print(png_name)
+        final_name = folder_name + custom_name + windows_name + label_name
+
+        while os.path.isfile(r'{}.tiff'.format(final_name)):
             number = "("+ str(N) +")"
-            custom_name = custom_name + number
-#                print(png_name)
+            final_name = folder_name + custom_name + windows_name + label_name + number
             N += 1
 
         data = self.NPsubimage
         result = Image.fromarray(data.astype('uint16'))
         result.save(r'{}.tiff'.format(final_name))
 
-        print( "\n NP image save as", final_name)
+        print( "\n NP image save as", r'{}.tiff'.format(final_name))
+
+    def NP_left_right_subimage(self):
+
+        N = 0
+        number = ""
+        folder_name = str(self.NP_label_saving_folder.text()) + "/"
+        custom_name = str(self.NP_edit_dir_save.text())
+        windows_name_left = "_left_"
+        windows_name_right = "_right_"
+        label_name  = str(self.NP_label_counter.text())
+        final_name_left = folder_name + custom_name + windows_name_left + label_name
+        final_name_right = folder_name + custom_name + windows_name_right + label_name
+
+        while os.path.isfile(r'{}.tiff'.format(final_name_left)):
+            number = "("+ str(N) +")"
+            final_name_left = folder_name + custom_name + windows_name_left + label_name + number
+            final_name_right = folder_name + custom_name + windows_name_right + label_name + number
+            N += 1
+
+        dataright = self.rightNPimage
+        dataleft = self.leftNPimage
+        result = Image.fromarray(dataright.astype('uint16'))
+        result = Image.fromarray(dataleft.astype('uint16'))
+        result.save(r'{}.tiff'.format(final_name_left))
+        result.save(r'{}.tiff'.format(final_name_right))
+
+        print( "\n Left & right saved", r'{}.tiff'.format(final_name_left))
 
     def NP_save_all_spots_UI_image(self):
 
@@ -1688,28 +1775,27 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 #        number = ""
         folder_name = str(self.NP_label_saving_folder.text()) + "/"
         custom_name = str(self.NP_edit_dir_save.text())
-        windows_name = "Full_picture_spots_"
+        windows_name = "_Full_picture_spots_"
         label_name  = str(len(self.realnumbers))  # str(self.NP_label_counter.text())
 
-        final_name = folder_name +custom_name + windows_name + label_name
-
+        final_name = folder_name +custom_name + windows_name + label_name + ".png"
         if os.path.isfile(final_name):
             print("The file already exist")
-            buttonReply = QtGui.QMessageBox.question(self, "The file already exist",
-                                       'Want to replace?', QtGui.QMessageBox.Yes | QtGui.QMessageBox.No, QtGui.QMessageBox.No)
-#buttonReply = QMessageBox.question(self, 'PyQt5 message', "Do you like PyQt5?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-            if buttonReply == QtGui.QMessageBox.Yes:
-                print('Yes clicked.')
-            else:
-                print('No clicked.')
+#            buttonReply = QtGui.QMessageBox.question(self, "The file already exist",
+#                                       'Want to replace?', QtGui.QMessageBox.Yes | QtGui.QMessageBox.No, QtGui.QMessageBox.No)
+##buttonReply = QMessageBox.question(self, 'PyQt5 message', "Do you like PyQt5?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+#            if buttonReply == QtGui.QMessageBox.Yes:
+#                print('Yes clicked.')
+#            else:
+#                print('No clicked.')
         else:
-            ratio = self.data.shape[1]/self.data.shape[0]
+            ratio = self.mean.shape[1]/self.mean.shape[0]
             height = int(1920)
             width = int(1920*ratio)
             exporter = pg.exporters.ImageExporter(self.imv.imageItem)
             exporter.params.param('width').setValue(width, blockSignal=exporter.widthChanged)
             exporter.params.param('height').setValue(height, blockSignal=exporter.heightChanged)
-
+    
     #        while os.path.isfile(final_name):
     ##                print(final_name)
     #            number = "("+ str(N) +")"
@@ -1719,7 +1805,33 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             exporter.export(final_name)
             print( "\n Picture exported as", final_name)
 
+    def NP_save_trace_UI_image(self):
+        N = 0
+        number = ""
+        folder_name = str(self.NP_label_saving_folder.text()) + "/"
+        custom_name = str(self.NP_edit_dir_save.text())
+        windows_name = "_Trace_"
+        label_name  = str(self.NP_label_counter.text())
 
+        final_name = folder_name +custom_name + windows_name + label_name + ".png"
+
+#        ratio = self.mean.shape[1]/self.mean.shape[0]
+#        height = int(1920)
+#        width = int(1920*ratio)
+        exporter = pg.exporters.ImageExporter(self.NP_trace_widget.scene())
+#        exporter = pg.exporters.ImageExporter(view.scene())
+        exporter.params['width'] = 1000
+#        exporter.params.param('width').setValue(width, blockSignal=exporter.widthChanged)
+#        exporter.params.param('height').setValue(height, blockSignal=exporter.heightChanged)
+
+        while os.path.isfile(final_name):
+#                print(final_name)
+            number = "("+ str(N) +")"
+            final_name = folder_name +custom_name + windows_name + label_name + number + ".png"
+#                print(final_name)
+            N += 1
+        exporter.export(final_name)
+        print( "\n Trace exported as", final_name)
 
 
 # %% out of program
