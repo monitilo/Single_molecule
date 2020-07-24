@@ -73,7 +73,9 @@ of all the detected spots. It applies both filters: bg; gauss; bg again.
 """
 import sys
 
-from PIL import Image
+from PIL import Image  # to save tiff images
+
+import pyautogui  # to make screenshots
 
 import numpy as np
 from pyqtgraph.Qt import QtCore, QtGui
@@ -300,6 +302,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.NP_labe_lstep = QtGui.QLabel('Step (Green - Red)')
         self.NP_labe_lstep.setFixedWidth(300)
 
+        self.NP_save_screenshot_tic = QtGui.QCheckBox('Save a screenshot')
+        self.NP_save_screenshot_tic.setChecked(True)
         self.NP_save_left_right_tic = QtGui.QCheckBox('save Left & right')
         self.NP_save_left_right_tic.setChecked(True)
         self.NP_save_subtraction_tic = QtGui.QCheckBox('Save subtraction')
@@ -408,6 +412,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         self.NP_wid_grid.addWidget(self.btn_NP_analyse,   1, 4, 4, 2)
 
+
+        self.NP_wid_grid.addWidget(self.NP_save_screenshot_tic,    0, 6, 1, 1)
         self.NP_wid_grid.addWidget(self.NP_save_subtraction_tic,   1, 6, 1, 1)
         self.NP_wid_grid.addWidget(self.NP_save_left_right_tic,    2, 6, 1, 1)
         self.NP_wid_grid.addWidget(self.NP_save_trace_tic,         3, 6, 1, 1)
@@ -1673,7 +1679,6 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 #            completename = self.folder +"/"+ str(self.edit_save.text())
             self.NP_label_saving_folder.setText(self.folder)
 
-
     def NP_save_whatever(self):
         """ save the subtracted image in png. Exactly as it looks in the interface."""
 #        N = 0
@@ -1694,6 +1699,13 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 #        data = self.NPsubimage
 #        result = Image.fromarray(data.astype('uint16'))
 #        result.save(r'{}.tiff'.format(final_name))
+        try:
+            if self.NP_save_screenshot_tic.isChecked():
+#              print("Full image:")
+                self.NP_save_screenshot()
+        except IOError as e:
+            print("I/O error({0}): {1}".format(e.errno, e.strerror))
+
         try:
             if self.NP_save_subtraction_tic.isChecked():
 #                print("Subtracted image")
@@ -1720,6 +1732,23 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         except IOError as e:
             print("I/O error({0}): {1}".format(e.errno, e.strerror))
 
+    def NP_save_screenshot(self):
+        N = 0
+        number = ""
+        folder_name = str(self.NP_label_saving_folder.text()) + "/"
+        custom_name = str(self.NP_edit_dir_save.text())
+        windows_name = "_Screeenshot_"
+        label_name  = str(self.NP_label_counter.text())
+        extention_name = ".jpg"
+        final_name = folder_name + custom_name + windows_name + label_name + extention_name
+
+        while os.path.isfile(final_name):
+            number = "("+ str(N) +")"
+            final_name = folder_name + custom_name + windows_name + label_name + number + extention_name
+            N += 1
+
+        myScreenshot = pyautogui.screenshot()
+        myScreenshot.save(final_name)
 
     def NP_save_subimage(self):
         """ save the subtracted image in png. Exactly as it looks in the interface."""
