@@ -516,9 +516,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         NPviewDock.addWidget(self.viewer_NP)
         self.dockArea.addDock(NPviewDock, "left", NPsubviewDock)
 
-        NPtraceDock = Dock('NP funny Trace', size=(100, 10))
-        NPtraceDock.addWidget(self.NP_trace_wid)
-        self.dockArea.addDock(NPtraceDock, "bottom", NPDock)
+        self.NPtraceDock = Dock('NP funny Trace', size=(100, 10))
+        self.NPtraceDock.addWidget(self.NP_trace_wid)
+        self.dockArea.addDock(self.NPtraceDock, "bottom", NPDock)
 
         viewDock = Dock('viewbox', size=(300, 50))
         viewDock.addWidget(self.viewer_wid)
@@ -535,7 +535,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         traceDock = Dock('Live Trace', size=(100, 10))
         traceDock.addWidget(self.trace_wid)
-        self.dockArea.addDock(traceDock, "above", NPtraceDock)
+        self.dockArea.addDock(traceDock, "above", self.NPtraceDock)
 
 #'bottom', 'top', 'left', 'right', 'above', or 'below'
 
@@ -1602,6 +1602,10 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
     def NP_making_traces(self):
         """ Create the trace where the LinearRegionItem will work"""
+        try:
+            self.NPtraceDock.raiseDock()
+        except: pass
+
         i = int(self.NP_edit_number.text())
         if i < len(self.realnumbers):
             try:
