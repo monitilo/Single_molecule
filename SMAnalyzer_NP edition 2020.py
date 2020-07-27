@@ -1804,7 +1804,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 #        number = ""
         folder_name = str(self.NP_label_saving_folder.text()) + "/"
         custom_name = str(self.NP_edit_dir_save.text())
-        windows_name = "_Full_picture_spots_"
+        windows_name = "_Full_picture_"
         label_name  = str(len(self.realnumbers))  # str(self.NP_label_counter.text())
 
         final_name = folder_name +custom_name + windows_name + label_name + ".png"
@@ -1818,7 +1818,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 #            else:
 #                print('No clicked.')
         else:
-            ratio = self.mean.shape[1]/self.mean.shape[0]
+            ratio = self.data.shape[2]/self.data.shape[1]
             height = int(1920)
             width = int(1920*ratio)
             exporter = pg.exporters.ImageExporter(self.imv.imageItem)
