@@ -714,6 +714,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 #            self.file_path = self.f
 #            print("Choosed path: \n", self.folder, "\n")
              self.edit_dir_save.setText(self.folder)
+             self.NP_label_saving_folder.setText(self.folder)
 
     def createROI(self):  # connected to Create ROI (btn2)
         """ create a big ROI to select the area to make the analysis
@@ -1548,6 +1549,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             self.NP_edit_number.setText(str(i-1))
             self.NP_making_traces()
 
+
     def NP_next(self):
         """ Proceed to next trace"""
         i = int(self.NP_edit_number.text())
@@ -1561,14 +1563,15 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.NPsubimage = self.leftNPimage - self.rightNPimage
         plot_with_colorbar(self.imv_NPsub, self.NPsubimage)
 
+
     def NP_leftAVG(self):
         """ Connected from left LinearRegionItem, AVG the frames, \
         and plot the small roi area"""
         i = int(self.NP_edit_number.text())
         self.lrmax.setZValue(10)
         leftminX, leftmaxX = self.lrmax.getRegion()
-#        self.avgmax = np.nanmean(self.moltrace[int(minX):int(maxX), (int(self.traceSlider.value()))])
-        self.avgmax = np.mean(self.moltrace[int(leftminX):int(leftmaxX),:,:])
+#        self.avgmax = np.nanmean(self.NProispot[int(minX):int(maxX), (int(self.traceSlider.value()))])
+        self.avgmax = np.mean(self.NProispot[int(leftminX):int(leftmaxX),:,:])
         self.NP_label_leftavg.setText("<span style='font-size: 12pt'> <span style='color: green'>LeftMean=%0.1f</span>" % (self.avgmax))
         self.leftNPimage = self.molRoi[self.realnumbers[i]].getArrayRegion(np.mean(
                 self.data[int(leftminX):int(leftmaxX),:,:], axis=0),
@@ -1583,7 +1586,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         i = int(self.NP_edit_number.text())
         self.lrmin.setZValue(10)
         rightminX, rightmaxX = self.lrmin.getRegion()
-        self.avgmin = np.mean(self.moltrace[int(rightminX):int(rightmaxX),:,:])
+        self.avgmin = np.mean(self.NProispot[int(rightminX):int(rightmaxX),:,:])
         self.NP_label_rightavg.setText("<span style='font-size: 12pt'> <span style='color: red'>RigthMean=%0.1f</span>" % (self.avgmin))
         self.rightNPimage = self.molRoi[self.realnumbers[i]].getArrayRegion(np.mean(
                 self.data[int(rightminX):int(rightmaxX),:,:], axis=0),
@@ -1615,13 +1618,13 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
     #                if j not in self.removerois:
     #                    self.realnumbers.append(j)
     #            print("realnumbers", self.realnumbers)
-                self.moltrace = self.molRoi[self.realnumbers[i]].getArrayRegion(self.data,
+                self.NProispot = self.molRoi[self.realnumbers[i]].getArrayRegion(self.data,
                                                         self.imv.imageItem,
                                                         axes=(1,2),
                                                         returnMappedCoords=False)
 
-                valor = np.sum(self.moltrace, axis=(1,2)) / float(self.time_adquisitionEdit.text())
-                self.NP_curve.setData(np.linspace(0,self.moltrace.shape[0],self.moltrace.shape[0]),
+                valor = np.sum(self.NProispot, axis=(1,2)) / float(self.time_adquisitionEdit.text())
+                self.NP_curve.setData(np.linspace(0,self.NProispot.shape[0],self.NProispot.shape[0]),
                                             valor,
                                             pen=pg.mkPen(color='y', width=1),
                                             shadowPen=pg.mkPen('w', width=3))
@@ -1644,17 +1647,17 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
     #            self.frame_line.sigPositionChanged.connect(self.moving_frame)
     
                 starting = int(0)
-                ending = int(self.moltrace.shape[0])
+                ending = int(self.NProispot.shape[0])
     
                 self.lrmax = pg.LinearRegionItem([starting,(starting+ending)//8], pen='g',
-                                                  bounds=[0, self.moltrace.shape[0]],
+                                                  bounds=[0, self.NProispot.shape[0]],
                                                   brush=(5,200,5,25),
                                                   hoverBrush=(50,200,50,50))
                 self.lrmax.setZValue(10)
                 self.NP_p2.addItem(self.lrmax, ignoreBounds=True)
     
                 self.lrmin = pg.LinearRegionItem([ending - ((starting+ending)//4), ending], pen='r',
-                                                  bounds=[0, self.moltrace.shape[0]],
+                                                  bounds=[0, self.NProispot.shape[0]],
                                                   brush=(200,50,50,25),
                                                   hoverBrush=(200,50,50,50))
                 self.lrmin.setZValue(10)
@@ -1682,6 +1685,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         else:
 #            completename = self.folder +"/"+ str(self.edit_save.text())
             self.NP_label_saving_folder.setText(self.folder)
+            self.edit_dir_save.setText(self.folder)
 
     def NP_save_whatever(self):
         """ save the subtracted image in png. Exactly as it looks in the interface."""
@@ -1735,6 +1739,15 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 self.NP_save_all_spots_UI_image()
         except IOError as e:
             print("I/O error({0}): {1}".format(e.errno, e.strerror))
+
+
+#        try:
+#            if self.TEXT TICK?.isChecked():
+##              print("Text data")
+#                self.NP_save_txt_data()
+#        except IOError as e:
+#            print("I/O error({0}): {1}".format(e.errno, e.strerror))
+
 
     def NP_save_screenshot(self):
         N = 0
@@ -1866,6 +1879,34 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         exporter.export(final_name)
         print( "\n Trace exported as", final_name)
 
+
+    def NP_save_txt_data(self):
+#        N = 0
+#        number = ""
+        folder_name = str(self.NP_label_saving_folder.text()) + "/"
+        custom_name = str(self.NP_edit_dir_save.text())
+        windows_name = "_data_"
+        label_name  = str(len(self.realnumbers))  # str(self.NP_label_counter.text())
+
+        final_name = folder_name +custom_name + windows_name + label_name + ".txt"
+
+        data_to_save = [int(self.NP_label_counter.text()[1:]), self.avgmax, self.avgmin, 
+                        self.stepintensity, 11]
+
+        if os.path.isfile(final_name):
+            with open(final_name,"a") as f:
+                np.savetxt(f, data_to_save, newline=", ")
+                f.write("\n")
+        else:
+            with open(final_name,"a") as f:
+#                header = ["Spot#", "Avg left", "Avg right", "Step", "Signal2noise"]
+#                header = "Traces"+"    "+"Good(1)_bad(-1)"+"    "+"Threshold"+"    "+"Signal2noise"+"    "+"Intensity"+"    "+"step"
+                headerere = ["Spot#", "Avg left", "Avg right", "Step", "Signal2noise"]
+                np.savetxt(f, headerere, fmt="%s", newline=", ")
+                f.write("\n")
+                np.savetxt(f, data_to_save, newline=", ")
+                f.write("\n")
+        print( "\n txt data exported as", final_name)
 
 # %% out of program
     def automatic_crazy_start(self): # connected to crazy go (crazyStepButton)
