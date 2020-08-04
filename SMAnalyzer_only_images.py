@@ -427,7 +427,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         root.withdraw()
 
         # Select image from file
-        self.f = filedialog.askopenfilename(filetypes=[("All", '*.tiff;*.tif;*.jpg'),
+        self.f = filedialog.askopenfilename(filetypes=[("All", '*.tiff;*.tif;*.jpg;*.bmp'),
                                                        ("Videos", '*.tiff;*.tif'),
                                                        ("Pictures", "*.jpg")])
 

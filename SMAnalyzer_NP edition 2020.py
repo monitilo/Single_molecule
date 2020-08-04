@@ -516,7 +516,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         NPviewDock.addWidget(self.viewer_NP)
         self.dockArea.addDock(NPviewDock, "left", NPsubviewDock)
 
-        self.NPtraceDock = Dock('NP funny Trace', size=(100, 10))
+        self.NPtraceDock = Dock('NP Interacting Trace', size=(100, 10))
         self.NPtraceDock.addWidget(self.NP_trace_wid)
         self.dockArea.addDock(self.NPtraceDock, "bottom", NPDock)
 
