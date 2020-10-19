@@ -302,6 +302,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.NP_labe_lstep = QtGui.QLabel('Step (Green - Red)')
         self.NP_labe_lstep.setFixedWidth(300)
 
+        self.NPbgcheck = QtGui.QCheckBox('Correct background')
+        self.NPbgcheck.setChecked(True)
+
         self.NP_save_screenshot_tic = QtGui.QCheckBox('Save a screenshot')
         self.NP_save_screenshot_tic.setChecked(True)
         self.NP_save_left_right_tic = QtGui.QCheckBox('save Left & right')
@@ -398,6 +401,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.viewer_NP_grid.addWidget(self.imv_right,          10, 4, 8, 8)
 
         self.viewer_NPsub_grid.addWidget(self.NP_labe_lstep,       0, 4, 1, 2)
+        self.viewer_NPsub_grid.addWidget(self.NPbgcheck,       0, 8, 1, 2)
         self.viewer_NPsub_grid.addWidget(self.btn_NP_subtract,    0, 16, 1, 4)
         self.viewer_NPsub_grid.addWidget(self.imv_NPsub,         1, 4, 16, 16)
         
@@ -1538,6 +1542,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             print( "\n Picture exported as", png_name)
 # %% NP definitions
 
+
     def NP_label_to_name(self):
         self.NP_label_counter.setText("_" + self.NP_edit_number.text())
 
@@ -1560,6 +1565,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
     def NP_subtract(self):
         """ Subtract both images and gives you the final version"""
+        self.NP_rightAVG()
+        self.NP_leftAVG()
         self.NPsubimage = self.leftNPimage - self.rightNPimage
         plot_with_colorbar(self.imv_NPsub, self.NPsubimage)
 
@@ -1578,6 +1585,25 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                                                         self.imv.imageItem)#,
 #                                                        axes=(1,2),
 #                                                        returnMappedCoords=False)
+        if self.NPbgcheck.isChecked():
+            bgArray = self.bgRoi[self.realnumbers[i]].getArrayRegion(np.mean(
+                    self.data[int(leftminX):int(leftmaxX),:,:], axis=0),
+                                                            self.imv.imageItem)#,
+    #                                            axes=(1,2),
+    #                                            returnMappedCoords=False)
+    
+            # get background array
+            leftNP_Bg = np.sum(bgArray) - np.sum(self.leftNPimage)
+            
+    #
+             # get total background to substract from molecule traces
+            n = int(self.moleculeSizeEdit.text())
+            m = (2*int(self.BgSizeEdit.text())) + n
+            self.leftNP_BgNorm = (leftNP_Bg) / (m*m - n*n)  # per pixel
+
+            self.leftNPimage = self.leftNPimage-self.leftNP_BgNorm
+#            plot_with_colorbar(self.imv_left, self.leftNPimage-self.leftNP_BgNorm)
+
         plot_with_colorbar(self.imv_left, self.leftNPimage)
 
     def NP_rightAVG(self):
@@ -1593,7 +1619,31 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                                                         self.imv.imageItem)#,
 #                                                        axes=(1,2),
 #                                                        returnMappedCoords=False)
+
+        if self.NPbgcheck.isChecked():
+
+            bgArray = self.bgRoi[self.realnumbers[i]].getArrayRegion(np.mean(
+                    self.data[int(rightminX):int(rightmaxX),:,:], axis=0),
+                                                            self.imv.imageItem)#,
+    #                                            axes=(1,2),
+    #                                            returnMappedCoords=False)
+
+            # get background array
+            rightNP_Bg = np.sum(bgArray) - np.sum(self.rightNPimage)
+
+             # get total background to substract from molecule traces
+            n = int(self.moleculeSizeEdit.text())
+            m = (2*int(self.BgSizeEdit.text())) + n
+            self.rightNP_BgNorm = (rightNP_Bg) / (m*m - n*n)  # por pixel
+            self.rightNPimage = self.rightNPimage-self.rightNP_BgNorm
+
+#            plot_with_colorbar(self.imv_right, self.rightNPimage-self.rightNP_BgNorm)
+
         plot_with_colorbar(self.imv_right, self.rightNPimage)
+
+
+
+
 
     def NP_stepAVG(self):
         """ Subtract both images and gives you the final version"""
