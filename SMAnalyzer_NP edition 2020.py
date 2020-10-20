@@ -508,7 +508,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         grid.addWidget(self.dockArea)
 
 # it is a total mess because "below" is not working, so I ned to use "above"
-        NPsubviewDock = Dock('NP Subtaction', size=(300, 50))
+        NPsubviewDock = Dock('NP Subtraction', size=(300, 50))
         NPsubviewDock.addWidget(self.viewer_NPsub)
         self.dockArea.addDock(NPsubviewDock)
 
@@ -543,7 +543,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
 #'bottom', 'top', 'left', 'right', 'above', or 'below'
 
-        self.setWindowTitle(" Difocusing NP Single Molecule Analizer")  # Nombre de la ventana
+        self.setWindowTitle(" Defocusing NP Single Molecule Analizer")  # Nombre de la ventana
         self.setGeometry(10, 40, 1600, 800)  # (PosX, PosY, SizeX, SizeY)
 
     # initialize  parameters. Remember, this is Just at start, never come here again.
@@ -1543,6 +1543,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 # %% NP definitions
 
 
+
     def NP_label_to_name(self):
         self.NP_label_counter.setText("_" + self.NP_edit_number.text())
 
@@ -1601,7 +1602,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             m = (2*int(self.BgSizeEdit.text())) + n
             self.leftNP_BgNorm = (leftNP_Bg) / (m*m - n*n)  # per pixel
 
-            self.leftNPimage = self.leftNPimage-self.leftNP_BgNorm
+            self.leftNPimage = self.leftNPimage/self.leftNP_BgNorm
 #            plot_with_colorbar(self.imv_left, self.leftNPimage-self.leftNP_BgNorm)
 
         plot_with_colorbar(self.imv_left, self.leftNPimage)
@@ -1613,7 +1614,27 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.lrmin.setZValue(10)
         rightminX, rightmaxX = self.lrmin.getRegion()
         self.avgmin = np.mean(self.NProispot[int(rightminX):int(rightmaxX),:,:])
+
         self.NP_label_rightavg.setText("<span style='font-size: 12pt'> <span style='color: red'>RigthMean=%0.1f</span>" % (self.avgmin))
+
+
+# =============================================================================
+#         for j in range(int(rightmaxX)-int(rightminX)):
+#             rightNPimage[j] = self.molRoi[self.realnumbers[i]].getArrayRegion(
+#                     self.data[int(rightminX)+i,:,:], self.imv.imageItem)
+#             bgArray[j] = self.bgRoi[self.realnumbers[i]].getArrayRegion(
+#                     self.data[int(rightminX)+i,:,:], self.imv.imageItem)
+# 
+#             rightNP_Bg[j] = np.sum(bgArray) - np.sum(self.rightNPimage)
+# 
+#              # get total background to substract from molecule traces
+#             n = int(self.moleculeSizeEdit.text())
+#             m = (2*int(self.BgSizeEdit.text())) + n
+#             self.rightNP_BgNorm[j] = (rightNP_Bg[j]) / (m*m - n*n)  # por pixel
+#             self.rightNPimage = self.rightNPimage/self.rightNP_BgNorm
+# =============================================================================
+
+
         self.rightNPimage = self.molRoi[self.realnumbers[i]].getArrayRegion(np.mean(
                 self.data[int(rightminX):int(rightmaxX),:,:], axis=0),
                                                         self.imv.imageItem)#,
@@ -1622,22 +1643,52 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         if self.NPbgcheck.isChecked():
 
-            bgArray = self.bgRoi[self.realnumbers[i]].getArrayRegion(np.mean(
-                    self.data[int(rightminX):int(rightmaxX),:,:], axis=0),
-                                                            self.imv.imageItem)#,
-    #                                            axes=(1,2),
-    #                                            returnMappedCoords=False)
+            rightNPimage = self.molRoi[self.realnumbers[i]].getArrayRegion(
+                    self.data, self.imv.imageItem)  # shape (frames, x, y)
+            bgArray = self.bgRoi[self.realnumbers[i]].getArrayRegion(
+                    self.data, self.imv.imageItem)
+#            print("rightNPimage shapee", rightNPimage.shape)
+#            print("bgArray shapee", bgArray.shape)
 
-            # get background array
-            rightNP_Bg = np.sum(bgArray) - np.sum(self.rightNPimage)
+            rightNP_Bg = np.zeros((int(rightmaxX)-int(rightminX)))
+#            print("rightNP_BG creation", rightNP_Bg.shape)
+#            print("max and min", rightmaxX, rightminX, rightmaxX-rightminX)
+            for l in range(int(rightmaxX)-int(rightminX)):
+#                print("l", l)
+#                print("aa", np.sum(bgArray[:,:,int(rightminX)+l], axis=(0,1)))
+#                print("bb", np.sum(rightNPimage[:,:,int(rightminX)+l], axis=(0,1)))
+                rightNP_Bg[l] = np.sum(bgArray[:,:,int(rightminX)+l], axis=(0,1)) - np.sum(rightNPimage[:,:,int(rightminX)+l], axis=(0,1))
 
-             # get total background to substract from molecule traces
+#            print("rightNP_BG & shape", rightNP_Bg.shape)
+            # get total background to substract from molecule traces
             n = int(self.moleculeSizeEdit.text())
             m = (2*int(self.BgSizeEdit.text())) + n
-            self.rightNP_BgNorm = (rightNP_Bg) / (m*m - n*n)  # por pixel
-            self.rightNPimage = self.rightNPimage-self.rightNP_BgNorm
+            self.rightNP_BgNorm = (n*n)*(rightNP_Bg) / (m*m - n*n)  # por pixel
+#            print("asease", rightNPimage[:,:,int(rightminX):int(rightmaxX)].shape)
+            self.rightNPimage = rightNPimage[:,:,int(rightminX):int(rightmaxX)] / self.rightNP_BgNorm
+#            print("rightNPimage shapee", self.rightNPimage.shape)
+            self.rightNPimage = np.mean(self.rightNPimage, axis=2)
+#            print("rightNPimage shapee", self.mean_rightNPimage.shape)
 
-#            plot_with_colorbar(self.imv_right, self.rightNPimage-self.rightNP_BgNorm)
+
+# =============================================================================
+#             bgArray = self.bgRoi[self.realnumbers[i]].getArrayRegion(np.mean(
+#                     self.data[int(rightminX):int(rightmaxX),:,:], axis=0),
+#                                                             self.imv.imageItem)#,
+#     #                                            axes=(1,2),
+#     #                                            returnMappedCoords=False)
+# 
+#             # get background array
+#             rightNP_Bg = np.sum(bgArray) - np.sum(self.rightNPimage)
+# 
+#              # get total background to substract from molecule traces
+#             n = int(self.moleculeSizeEdit.text())
+#             m = (2*int(self.BgSizeEdit.text())) + n
+#             self.rightNP_BgNorm = (rightNP_Bg) / (m*m - n*n)  # por pixel
+#             self.rightNPimage = self.rightNPimage/self.rightNP_BgNorm
+# 
+# #            plot_with_colorbar(self.imv_right, self.rightNPimage-self.rightNP_BgNorm)
+# =============================================================================
 
         plot_with_colorbar(self.imv_right, self.rightNPimage)
 
@@ -1673,11 +1724,38 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                                                         axes=(1,2),
                                                         returnMappedCoords=False)
 
-                valor = np.sum(self.NProispot, axis=(1,2)) / float(self.time_adquisitionEdit.text())
+                valor = np.sum(self.NProispot, axis=(1,2))
+
+                if self.NPbgcheck.isChecked():
+        
+                    bgArray = self.bgRoi[self.realnumbers[i]].getArrayRegion(self.data,
+                                                        self.imv.imageItem,
+                                                        axes=(1,2),
+                                                        returnMappedCoords=False)
+
+                    # get background array
+#                    traceNP_bg = np.sum(bgArray) - np.sum(valor)
+#                    print("bgArray shape=", bgArray.shape)
+                    traceNP_bg = np.sum(bgArray, axis=(1,2)) - valor
+#                    print(" valorshape", valor.shape)
+#                    print("traceNP_bg shape=", traceNP_bg.shape)
+#                    print("traceNP_bg=", traceNP_bg)
+
+                     # get total background to substract from molecule traces
+                    n = int(self.moleculeSizeEdit.text())
+                    m = (2*int(self.BgSizeEdit.text())) + n
+                    self.traceNP_BgNorm = (n*n)*(traceNP_bg) / (m*m - n*n)  # por pixel
+#                    print("traceNP_BgNorm= shape", self.traceNP_BgNorm.shape)
+                    valor = (valor / self.traceNP_BgNorm )
+#                    print("valorshape=", valor.shape)
+
+
+
                 self.NP_curve.setData(np.linspace(0,self.NProispot.shape[0],self.NProispot.shape[0]),
                                             valor,
                                             pen=pg.mkPen(color='y', width=1),
                                             shadowPen=pg.mkPen('w', width=3))
+
     #            self.frame_line.setPos(int(self.meanStartEdit.text()))
                 self.NP_leftAVG()
                 self.NP_rightAVG()
