@@ -1635,11 +1635,11 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 # =============================================================================
 
 
-        self.rightNPimage = self.molRoi[self.realnumbers[i]].getArrayRegion(np.mean(
-                self.data[int(rightminX):int(rightmaxX),:,:], axis=0),
-                                                        self.imv.imageItem)#,
-#                                                        axes=(1,2),
-#                                                        returnMappedCoords=False)
+#        self.rightNPimage = self.molRoi[self.realnumbers[i]].getArrayRegion(np.mean(
+#                self.data[int(rightminX):int(rightmaxX),:,:], axis=0),
+#                                                        self.imv.imageItem)#,
+##                                                        axes=(1,2),
+##                                                        returnMappedCoords=False)
 
         if self.NPbgcheck.isChecked():
 
@@ -1659,11 +1659,12 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 #                print("bb", np.sum(rightNPimage[:,:,int(rightminX)+l], axis=(0,1)))
                 rightNP_Bg[l] = np.sum(bgArray[:,:,int(rightminX)+l], axis=(0,1)) - np.sum(rightNPimage[:,:,int(rightminX)+l], axis=(0,1))
 
-#            print("rightNP_BG & shape", rightNP_Bg.shape)
+#            print("rightNP_BG shape", rightNP_Bg.shape)
             # get total background to substract from molecule traces
             n = int(self.moleculeSizeEdit.text())
             m = (2*int(self.BgSizeEdit.text())) + n
-            self.rightNP_BgNorm = (n*n)*(rightNP_Bg) / (m*m - n*n)  # por pixel
+            self.rightNP_BgNorm = (rightNP_Bg) / (m*m - n*n)
+#            print("rightNP_BG shape", self.rightNP_BgNorm.shape)
 #            print("asease", rightNPimage[:,:,int(rightminX):int(rightmaxX)].shape)
             self.rightNPimage = rightNPimage[:,:,int(rightminX):int(rightmaxX)] / self.rightNP_BgNorm
 #            print("rightNPimage shapee", self.rightNPimage.shape)
