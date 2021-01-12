@@ -343,6 +343,10 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.post_wid = QtGui.QWidget()
         self.post_wid.setLayout(self.post_grid)
 
+        self.smallbgcheck = QtGui.QCheckBox('Substract background')
+        self.smallbgcheck.setChecked(True)
+        self.smallbgcheck.clicked.connect(self.making_traces)
+
         self.NP_wid_grid = QtGui.QGridLayout()
         self.NP_wid = QtGui.QWidget()
         self.NP_wid.setLayout(self.NP_wid_grid)
@@ -432,8 +436,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         self.trace_grid.addWidget(self.trace_widget,      1, 4, 6, 6)
 
-
-        self.post_grid.addWidget(self.see_labels_button,   3, 25, 1, 2)
+        self.post_grid.addWidget(self.see_labels_button,   3, 25, 1, 1)
+        self.post_grid.addWidget(self.smallbgcheck,        3, 26, 1, 1)
         self.post_grid.addWidget(self.btn_small_roi,       4, 25, 1, 1)
         self.post_grid.addWidget(self.gauss_fit_label,     5, 25, 1, 1)
         self.post_grid.addWidget(self.gauss_fit_edit,      5, 26, 1, 1)
@@ -991,22 +995,45 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             self.meanEndEdit.setStyleSheet(" background-color: ; ")
             self.imv.view.scene().removeItem(self.smallroi)
             self.smallroi = None
+
+            self.imv.view.scene().removeItem(self.smallroibg)
+            self.smallroibg = None
             print("good bye old roi, Hello new Roi")
 
         try:
             roisize = int(self.moleculeSizeEdit.text())
-            self.smallroi = pg.ROI([0, 0], [roisize, roisize],
+            m = int(self.BgSizeEdit.text())
+            self.smallroi = pg.ROI([0+m, 0+m], [roisize, roisize],
                                    scaleSnap=True, translateSnap=True,
                                    movable=True, removable=True, pen='g')
-            self.imv.view.addItem(self.smallroi)
+
             self.smallroi.sigRemoveRequested.connect(self.remove_small_ROI)
             self.smallroi.setAcceptedMouseButtons(QtCore.Qt.LeftButton)
             self.smallroi.sigClicked.connect(self.small_ROI_to_new_ROI)
+
+            self.smallroibg = pg.ROI([0, 0], [roisize+2*m, roisize+2*m],
+                                   scaleSnap=True, translateSnap=True,
+                                   movable=True, removable=True, pen='g')
+#            self.smallroibg = pg.ROI([0, 0], [m, m],
+#                                   scaleSnap=True, translateSnap=True,
+#                                   movable=True, removable=True, pen='r')
+#            self.smallroibg.cancelMove()
+            self.imv.view.addItem(self.smallroibg)
+            self.imv.view.addItem(self.smallroi)
+#            self.smallroibg.sigRemoveRequested.connect(self.remove_small_ROI)
+
             if not self.JPG:
                 self.smallroi.sigRegionChanged.connect(self.making_traces)
+                self.smallroi.sigRegionChanged.connect(self.move_smallroibg)
+                self.smallroibg.sigRegionChanged.connect(self.making_traces)
 #                self.smallroi.sigRegionChanged.connect(self.NP_making_traces)
-        except:
+        except IOError as e:
+            print("I/O error({0}): {1}".format(e.errno, e.strerror))
             pass
+
+    def move_smallroibg(self):
+        m = int(self.BgSizeEdit.text())
+        self.smallroibg.setPos(self.smallroi.pos()-[m,m])
 
     def making_traces(self):
         if not self.JPG:
@@ -1017,6 +1044,23 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                                                         returnMappedCoords=False)
 
                 valor = np.sum(moltrace, axis=(1,2)) / float(self.time_adquisitionEdit.text())
+
+                if self.smallbgcheck.isChecked():
+                    moltracebg = self.smallroibg.getArrayRegion(self.data,
+                                                        self.imv.imageItem,
+                                                        axes=(1,2),
+                                                        returnMappedCoords=False)
+
+                    tracesmall_bg = np.sum(moltracebg, axis=(1,2)) - valor
+
+                    n = int(self.moleculeSizeEdit.text())
+                    m = (2*int(self.BgSizeEdit.text())) + n
+                    bgnorm = (n*n)*(tracesmall_bg) / (m*m - n*n)
+                    valor = (valor - bgnorm ) / float(self.time_adquisitionEdit.text())
+
+#                bgnorm = np.mean(moltracebg, axis=(1,2))*(n*n)
+#                valor = (np.sum(moltrace, axis=(1,2)) -bgnorm) / float(self.time_adquisitionEdit.text())
+
                 self.curve.setData(np.linspace(0,moltrace.shape[0],moltrace.shape[0]),
                                             valor,
                                             pen=pg.mkPen(color='y', width=1),
