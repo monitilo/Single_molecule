@@ -1051,12 +1051,12 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                                                         axes=(1,2),
                                                         returnMappedCoords=False)
 
-                    tracesmall_bg = np.sum(moltracebg, axis=(1,2)) - valor
+                    tracesmall_bg = (np.sum(moltracebg, axis=(1,2))/ float(self.time_adquisitionEdit.text())) - valor
 
                     n = int(self.moleculeSizeEdit.text())
                     m = (2*int(self.BgSizeEdit.text())) + n
                     bgnorm = (n*n)*(tracesmall_bg) / (m*m - n*n)
-                    valor = (valor - bgnorm ) / float(self.time_adquisitionEdit.text())
+                    valor = (valor - bgnorm )
 
 #                bgnorm = np.mean(moltracebg, axis=(1,2))*(n*n)
 #                valor = (np.sum(moltrace, axis=(1,2)) -bgnorm) / float(self.time_adquisitionEdit.text())
