@@ -812,7 +812,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                                                         axes=(1,2),
                                                         returnMappedCoords=False)
 
-                    tracesmall_bg = np.sum(moltracebg, axis=(1,2)) - valor
+                    tracesmall_bg = (np.sum(moltracebg, axis=(1,2)) / float(self.time_adquisitionEdit.text())) - valor
 
                     n = int(self.moleculeSizeEdit.text())
                     m = (2*int(self.BgSizeEdit.text())) + n
