@@ -94,6 +94,8 @@ from pyqtgraph.dockarea.Dock import DockLabel
 
 #import time as time
 
+channels = ["Normal trace", "Bg subtracted","sub and div bg","only bg"]
+
 # %% Change the colors of the Dock tabs
 def updateStylePatched(self):
     r = '3px'
@@ -344,8 +346,33 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.post_wid.setLayout(self.post_grid)
 
         self.smallbgcheck = QtGui.QCheckBox('Substract background')
-        self.smallbgcheck.setChecked(True)
-        self.smallbgcheck.clicked.connect(self.making_traces)
+#        self.smallbgcheck.setChecked(True)
+#        self.smallbgcheck.clicked.connect(self.choosing_traces_bg_sub)
+#        self.smallbgcheck.clicked.connect(self.making_traces)
+
+        self.smallbgnormcheck = QtGui.QCheckBox('Sub and Div background')
+#        self.smallbgnormcheck.setChecked(True)
+#        self.smallbgcheck.clicked.connect(self.choosing_traces_bg_norm)
+#        self.smallbgnormcheck.clicked.connect(self.making_traces)
+
+        self.smallbgonlycheck = QtGui.QCheckBox(' Only background')
+#        self.smallbgonlycheck.setChecked(True)
+#        self.smallbgonlycheck.clicked.connect(self.choosing_traces_bg_only)
+#        self.smallbgonlycheck.clicked.connect(self.making_traces)
+
+
+
+        self.channel_combobox = QtGui.QComboBox()
+        self.channel_combobox.addItems(channels)
+#        self.channel_combobox.setCurrentIndex(2)
+        self.channel_combobox.setToolTip('Choose the trace to see')
+        self.channel_combobox.setFixedWidth(80)
+        self.channel_combobox.activated.connect(  # it calls the color function
+                                    lambda: self.channel_menu(self.channel_combobox))
+        self.channel_combobox.activated.connect(self.making_traces)
+        self.channel_menu(self.channel_combobox)  # it gives the starting color
+#        channel_label = QtGui.QLabel('<strong> Choose your channel')
+
 
         self.NP_wid_grid = QtGui.QGridLayout()
         self.NP_wid = QtGui.QWidget()
@@ -447,8 +474,13 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.post_grid.addWidget(self.btn_histogram,      12, 25, 1, 2)
         self.post_grid.addWidget(self.btn_save_histogram, 13, 25, 1, 1)
 
-        self.post_grid.addWidget(self.crazyStepEdit,    14, 26, 1, 1)
-        self.post_grid.addWidget(self.crazyStepButton,  14, 25, 1, 1)
+#        self.post_grid.addWidget(self.smallbgcheck,           13, 26, 1, 1)
+#        self.post_grid.addWidget(self.smallbgnormcheck,       14, 25, 1, 1)
+#        self.post_grid.addWidget(self.smallbgonlycheck,       14, 26, 1, 1)
+        self.post_grid.addWidget(self.channel_combobox,       14, 26, 1, 1)
+
+#        self.post_grid.addWidget(self.crazyStepEdit,    14, 26, 1, 1)
+#        self.post_grid.addWidget(self.crazyStepButton,  14, 25, 1, 1)
 
         # button actions
         self.btn1.clicked.connect(self.importImage)
@@ -948,10 +980,10 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
     def exportTraces_or_images(self):  # connected to export traces button (btn7)
         if self.is_trace:
             self.calculate_traces()
-            self.export("trace")            
+            self.export("trace")
         else:
             self.calculate_images()
-            self.export("images")          
+            self.export("images")
 
 
     def image_analysis(self):  # connected to image analysis button (btn_images)
@@ -1035,6 +1067,27 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         m = int(self.BgSizeEdit.text())
         self.smallroibg.setPos(self.smallroi.pos()-[m,m])
 
+#    def choosing_traces_bg_sub(self):
+#        if not self.smallbgcheck.isChecked():
+#            self.smallbgcheck.setChecked(True)
+#            self.smallbgnormcheck.setChecked(False)
+#            self.smallbgonlycheck.setChecked(False)
+#        self.making_traces()
+#
+#    def choosing_traces_bg_norm(self):
+#        if not self.smallbgnormcheck.isChecked():
+#            self.smallbgcheck.setChecked(False)
+#            self.smallbgnormcheck.setChecked(True)
+#            self.smallbgonlycheck.setChecked(False)
+#        self.making_traces()
+#
+#    def choosing_traces_bg_only(self):
+#        if not self.smallbgonlycheck.isChecked():
+#            self.smallbgcheck.setChecked(False)
+#            self.smallbgnormcheck.setChecked(False)
+#            self.smallbgonlycheck.setChecked(True)
+#        self.making_traces()
+
     def making_traces(self):
         if not self.JPG:
             try:
@@ -1045,21 +1098,38 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
                 valor = np.sum(moltrace, axis=(1,2)) / float(self.time_adquisitionEdit.text())
 
-                if self.smallbgcheck.isChecked():
-                    moltracebg = self.smallroibg.getArrayRegion(self.data,
-                                                        self.imv.imageItem,
-                                                        axes=(1,2),
-                                                        returnMappedCoords=False)
+#                if self.smallbgcheck.isChecked() or self.smallbgnormcheck.isChecked() or self.smallbgonlycheck.isChecked():
+                moltracebg = self.smallroibg.getArrayRegion(self.data,
+                                                    self.imv.imageItem,
+                                                    axes=(1,2),
+                                                    returnMappedCoords=False)
 
-                    tracesmall_bg = (np.sum(moltracebg, axis=(1,2)) / float(self.time_adquisitionEdit.text())) - valor
+                tracesmall_bg = (np.sum(moltracebg, axis=(1,2)) / float(self.time_adquisitionEdit.text())) - valor
 
-                    n = int(self.moleculeSizeEdit.text())
-                    m = (2*int(self.BgSizeEdit.text())) + n
-                    bgnorm = (n*n)*(tracesmall_bg) / (m*m - n*n)
+                n = int(self.moleculeSizeEdit.text())
+                m = (2*int(self.BgSizeEdit.text())) + n
+                bgnorm = (n*n)*(tracesmall_bg) / (m*m - n*n)
+
+#                if self.smallbgcheck.isChecked():
+#                    valor = (valor - bgnorm )
+#                elif self.smallbgnormcheck.isChecked():
+#                    valor = (valor - bgnorm ) / bgnorm
+#                elif self.smallbgonlycheck.isChecked():
+#                    valor = bgnorm
+
+                if self.channel_combobox.currentText() == channels[0]:
+                    print("normal")
+                elif self.channel_combobox.currentText() == channels[1]:
                     valor = (valor - bgnorm )
+                    print("-bg")
+                elif self.channel_combobox .currentText() == channels[2]:
+                    valor = (valor - bgnorm ) / bgnorm
+                    print("-bg/bg")
+                elif self.channel_combobox .currentText() == channels[3]:
+                    valor = bgnorm
+                    print("only bg")
 
-#                bgnorm = np.mean(moltracebg, axis=(1,2))*(n*n)
-#                valor = (np.sum(moltrace, axis=(1,2)) -bgnorm) / float(self.time_adquisitionEdit.text())
+
 
                 self.curve.setData(np.linspace(0,moltrace.shape[0],moltrace.shape[0]),
                                             valor,
@@ -2101,6 +2171,19 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         print( "\n txt data exported as", final_name)
 
 # %% out of program
+    def channel_menu(self, QComboBox):
+        """ le pongo color a los menus"""
+        if QComboBox.currentText() == channels[0]:  # verde
+            self.channel = 0
+            QComboBox.setStyleSheet("QComboBox{color: rgb(255,0,0);}\n")
+        elif QComboBox .currentText() == channels[1]:  # rojo
+            self.channel = 1
+            QComboBox.setStyleSheet("QComboBox{color: rgb(0,128,0);}\n")
+        elif QComboBox .currentText() == channels[2]: # azul
+            self.channel = 2
+            QComboBox.setStyleSheet("QComboBox{color: rgb(0,0,255);}\n")
+
+
     def automatic_crazy_start(self): # connected to crazy go (crazyStepButton)
         """it start the timer with a specific time in ms to call again
         the function connected (automatic_crazy). 

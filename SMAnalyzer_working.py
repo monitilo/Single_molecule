@@ -335,7 +335,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
 #'bottom', 'top', 'left', 'right', 'above', or 'below'
 
-        self.setWindowTitle("Single Molecule Analizer")  # Nombre de la ventana
+        self.setWindowTitle("Single Molecule Analizer 2.0")  # Nombre de la ventana
         self.setGeometry(10, 40, 1600, 800)  # (PosX, PosY, SizeX, SizeY)
 
     # initialize  parameters. Remember, this is Just at start, never come here again.
