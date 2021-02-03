@@ -1261,7 +1261,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.isclear = True
 
 #        print("plot weber curve")
-        colors = ['m', 'b', 'y', 'r']
+        colors = ['b', 'c', 'y', 'g', 'm', 'r']
         for i in range(len(self.molRoi)-len(self.removerois)):
             curves = self.p2.plot(open='y')
             valory = self.weber_vector[:,i]
