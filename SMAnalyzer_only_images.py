@@ -168,6 +168,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 #        self.crazyStepEdit.setFixedWidth(40)
 
         self.autoWeberButton = QtGui.QPushButton('Auto Weber')
+        self.autoWeberButton.setStyleSheet(
+                "QPushButton:pressed { background-color: blue; }")
+
 
         self.weberRoiStepEdit = QtGui.QLineEdit('10')
         self.weberRoiStepEdit.setFixedWidth(60)
@@ -1070,7 +1073,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         For each spot take the counts of the molecular roi, and 
         substract the counts from the normalized backgruond """
 
-        print("Calculate Images")
+#        print("Calculate Images")
         self.roiSize = [int(self.moleculeSizeEdit.text())] * 2
         self.bgroiSize = np.array(self.roiSize) + 2* int(self.BgSizeEdit.text())  # one pixel each side
 
@@ -1123,7 +1126,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             a.append(self.sum_spot[p])
 
         b = np.array(a).T
-        print("len spots", len(b))
+#        print("len spots", len(b))
         self.intensitys = b
 
         self.morgane = np.array(morgane)
@@ -1208,7 +1211,11 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.update_size_rois()
         self.weber_vector = np.zeros((int(self.weberRoiStepEdit.text()), len(self.molRoi)-len(self.removerois)))
 
-        self.automatic_webertimer.start(50)  # imput in ms
+        self.autoWeberButton.setStyleSheet(
+                "QPushButton { background-color: orange; }"
+                "QPushButton:pressed { background-color: blue; }")
+
+        self.automatic_webertimer.start(5)  # imput in ms
 #        self.weber_vector_error = []
 #        print("number of Rois to check :", int(self.weberRoiStepEdit.text()))
 
@@ -1225,7 +1232,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
 #        self.plot_weber()  # If I have time later I do the plot in another window
         roiSize = int(self.moleculeSizeEdit.text())
-        print(roiSize, "roisize")
+#        print(roiSize, "roisize")
         self.moleculeSizeEdit.setText(str(int(roiSize+1)))
 #        print(int(self.moleculeSizeEdit.text()), "roisize after")
         self.update_size_rois()
@@ -1239,6 +1246,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 #            print("WEBER vector", self.weber_vector)
 #            plt.plot(self.weber_vector)
             self.plot_weber()
+            self.autoWeberButton.setStyleSheet(
+                    "QPushButton { background-color: ; }"
+                    "QPushButton:pressed { background-color: blue; }")
 
     def plot_weber(self):
         alsteps = int(self.weberRoiStepEdit.text())
