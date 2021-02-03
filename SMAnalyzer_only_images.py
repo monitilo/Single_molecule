@@ -167,6 +167,13 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 #        self.crazyStepEdit = QtGui.QLineEdit('10')
 #        self.crazyStepEdit.setFixedWidth(40)
 
+        self.autoWeberButton = QtGui.QPushButton('Auto Weber')
+
+        self.weberRoiStepEdit = QtGui.QLineEdit('20')
+        self.weberRoiStepEdit.setFixedWidth(60)
+#        self.crazyStepEdit = QtGui.QLineEdit('10')
+#        self.crazyStepEdit.setFixedWidth(40)
+
         # Create parameter fields with labels
 #        self.meanStartLabel = QtGui.QLabel('Start frame:')
 #        self.meanStartEdit = QtGui.QLineEdit('5')
@@ -298,6 +305,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
 #        self.post_grid.addWidget(self.crazyStepEdit,    14, 26, 1, 1)
 #        self.post_grid.addWidget(self.crazyStepButton,  14, 25, 1, 1)
+        self.post_grid.addWidget(self.autoWeberButton,  14, 25, 1, 1)
+        self.post_grid.addWidget(self.weberRoiStepEdit, 14, 26, 1, 1)
 
         # button actions
         self.btn1.clicked.connect(self.importImage)
@@ -318,7 +327,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.btn_histogram.clicked.connect(self.make_histogram)
         self.btn_save_histogram.clicked.connect(self.save_histogram)
 #        self.crazyStepButton.clicked.connect(self.automatic_crazy_start)
-        
+        self.autoWeberButton.clicked.connect(self.automatic_weber_start)
+
         self.btn99_clearall.clicked.connect(self.clear_all)
 
         self.moleculeSizeEdit.textEdited.connect(self.update_size_rois)
@@ -327,6 +337,10 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         # a Python timer that call a function with a specific clock (later)
 #        self.automatic_crazytimer = QtCore.QTimer()
 #        self.automatic_crazytimer.timeout.connect(self.automatic_crazy)
+
+        self.automatic_webertimer = QtCore.QTimer()
+        self.automatic_webertimer.timeout.connect(self.automatic_weber)
+
 
         self.see_labels_button.clicked.connect(self.see_labels)
         self.see_labels_button.setChecked(True)
@@ -755,7 +769,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         except:
             pass
 
-    def making_traces(self):
+    def making_traces(self):  # is not making traces, just the profile X & Y
 
         try:
             molline = self.smallroi.getArrayRegion(self.image_data,
@@ -1060,6 +1074,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         bg = dict()
         bgNorm = dict()
         morgane = []
+        webervector = []
 #        s = (2*int(self.BgSizeEdit.text()))  # bgsize = molsize + s
         p=0
         for i in range(len(self.molRoi)):  # np.arange(0, self.maxnumber):
@@ -1088,8 +1103,12 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 self.sum_spot[p] = (np.sum(molArray[i]) - bgNorm[i])
                 weber[p] = self.sum_spot[p] / bgNorm[i]
                 morgane.append((self.sum_spot[p], bgNorm[i], weber[p]))
+
+                webervector.append(weber[p])
                 p +=1 # I have to use this to have order because of removerois
 
+
+        self.weber = webervector
         # Save sums as an array
         a = []
         for p in range(len(self.sum_spot)):
@@ -1169,6 +1188,86 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
             import sys  # to get the path and the name of the .py file runing
             print ("\n all saved in " +sys.argv[0])
+
+# %% Auto weber
+    def automatic_weber_start(self): # connected to auto Weber button (autoWeberButton)
+        """it start the timer with a specific time in ms to call again
+        the function connected (automatic_crazy). 
+        It stop when timer.spot is called (automatic_crazy function)"""
+        self.timing = 0
+        self.automatic_webertimer.start(50)  # imput in ms
+        self.weber_vector = np.zeros((int(self.weberRoiStepEdit.text()), len(self.molRoi)-len(self.removerois)))
+#        self.weber_vector_error = []
+        print("number of Rois to check :", int(self.weberRoiStepEdit.text()))
+
+    def automatic_weber(self):  # from the timer of automatic_weber_start
+        """ to find the best rois size based on the weber contrasts. It scan
+        up to N diferent sizes, where N can be an imput."""
+#        self.weber_vector[self.timing] = []
+        print("start automatic weber")
+        self.calculate_images()
+        print("Calculate images finish")
+#        self.weber_vector[self.timing].append(self.weber)
+        self.weber_vector[self.timing,:] = self.weber
+        print("Weber vector growing")
+
+#        self.plot_weber()  # If I have time later I do the plot in another window
+        roiSize = int(self.moleculeSizeEdit.text())
+        print(roiSize, "roisize before")
+        self.moleculeSizeEdit.setText(str(int(roiSize+1)))
+        print(int(self.moleculeSizeEdit.text()), "roisize after")
+        self.update_size_rois()
+        print(int(self.moleculeSizeEdit.text()), "Updato ro size just in case")
+
+
+        self.timing +=1
+        if self.timing == int(self.weberRoiStepEdit.text()):
+            self.automatic_webertimer.stop()
+            print(" automatic analysis finished", len(self.weber_vector))
+            print("WEBER vector", self.weber_vector)
+#            plt.plot(self.weber_vector)
+            self.plot_weber()
+
+    def plot_weber(self):
+        alsteps = int(self.weberRoiStepEdit.text())
+        valorx =  (np.linspace(1, alsteps, alsteps)+int(self.moleculeSizeEdit.text())-alsteps)
+        self.curve.clear()  # setData(valor,
+#                            pen=pg.mkPen(color='b', width=2),
+#                            shadowPen=pg.mkPen('w', width=3))
+        self.p2.removeItem(self.frame_line)
+        print("plot weber curve")
+        for i in range(len(self.molRoi)-len(self.removerois)):
+            valory = self.weber_vector[:,i]
+            self.curvey.setData(valorx, np.transpose(valory))  # ,
+#                            pen=pg.mkPen(color='m', width=2),
+#                            shadowPen=pg.mkPen('w', width=2))
+
+
+# =============================================================================
+#     def plot_weber(self):
+#         """Prepare to make the histogram with all the spots detected.
+#         It opens a new window to run in another thread and  make it easy.
+#         If the new window is not closed, it add the new data to the histogram
+#         and can save all of this.
+#         When closed, starts over, AND CANNOT SAVE ALL THIS"""
+# 
+# #        self.calculate_images()
+# #        try:
+# #            self.intensitys2 = np.concatenate((self.intensitys,
+# #                                               self.intensitys2))
+# #            self.morgane2 = np.concatenate((self.morgane,
+# #                                               self.morgane2))
+# #        except:
+# #            self.intensitys2 = self.intensitys
+# #            self.morgane2 = self.morgane
+#         self.doweber()
+# 
+#     def doweber(self):  # from plot_weber
+#         """start the new popup window. its run independenty of the Main win"""
+#         self.w3 = MyPopup_weber(self)
+#         self.w3.setGeometry(QtCore.QRect(750, 50, 450, 600))
+#         self.w3.show()
+# =============================================================================
 
 # %% out of program
 
@@ -1327,6 +1426,63 @@ class MyPopup_histogram(QtGui.QWidget):
 
         self.close()
 
+
+# =============================================================================
+# class MyPopup_weber(QtGui.QWidget):
+#     """ new class to create a new window for the weber plot
+#     for now is only a graph"""
+# 
+#     def closeEvent(self, event):  # when the win is closed
+#         """ things to do when the windows is closed: erase all the acumulated
+#         data; change the text on the butto to make clear what you have"""
+# #        self.main.intensitys2 = None
+# #        self.main.morgane2 = None
+# #        self.main.histo_data = False
+#         
+#     def __init__(self, main, *args, **kwargs):  # when doit do w2.show()
+#         """this is the initialize of this new windows. Make the new
+#         windows appear and put the histogram inside. Can have mor things
+#         For now, it can be closed with ESC as a shortcut"""
+# 
+#         QtGui.QWidget.__init__(self)
+#         super().__init__(*args, **kwargs)
+# 
+#         self.main = main
+#         self.Histo_widget = pg.GraphicsLayoutWidget()
+#         grid = QtGui.QGridLayout()  # overkill for one item...
+#         self.setLayout(grid)
+# 
+#         self.p1 = self.Histo_widget.addPlot(row=2, col=1, title="Histogram (kHz)")
+#         self.p1.showGrid(x=True, y=True)
+# 
+#         intensitys = self.main.intensitys2
+#         self.intensitys = intensitys
+# 
+#         grid.addWidget(self.Histo_widget,      0, 0, 1, 7)
+# #        grid.addWidget(self.play_pause_Button,  1, 0)
+# 
+#         self.setWindowTitle("Histogram. (ESC key, close it.)")
+# 
+#         vals = self.intensitys
+#         y,x = np.histogram(vals)
+#         self.p1.plot(x, y, stepMode=True, fillLevel=0, brush=(0,0,255,150))
+#         self.p1.showGrid(x = True, y = True, alpha = 0.5)
+# 
+#         # Shortcut. ESC ==> close_win
+#         self.close_Action = QtGui.QAction(self)
+#         QtGui.QShortcut(
+#             QtGui.QKeySequence('ESC'), self, self.close_win)
+# 
+#     def close_win(self):  # called pressing ESC
+#         """Close all when press ESC. Same changes es the other closeEvent
+#         (not sure about how to trigger both at the same time)"""
+#         
+#         self.main.intensitys2 = None
+#         self.main.histo_data = False
+#         self.main.btn7.setText("Export only last ({}) points".format(len(self.main.intensitys)))
+# 
+#         self.close()
+# =============================================================================
 # %% Functions to make the Gauss fit
 def gaussian(height, center_x, center_y, width_x, width_y):
     """Returns a gaussian function with the given parameters"""
