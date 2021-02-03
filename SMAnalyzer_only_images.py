@@ -169,7 +169,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         self.autoWeberButton = QtGui.QPushButton('Auto Weber')
 
-        self.weberRoiStepEdit = QtGui.QLineEdit('20')
+        self.weberRoiStepEdit = QtGui.QLineEdit('10')
         self.weberRoiStepEdit.setFixedWidth(60)
 #        self.crazyStepEdit = QtGui.QLineEdit('10')
 #        self.crazyStepEdit.setFixedWidth(40)
@@ -738,6 +738,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
     def create_small_ROI(self):  # connected to New small Roi (btn_small_roi)
         """ creates a new green roi at (0,0) position. then you move it
         and click on it to add rois at your analysis"""
+        self.isclear = False
 
         if self.smallroi is not None:  # only want one
             self.imv.view.scene().removeItem(self.smallroi)
@@ -778,6 +779,13 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
             valor = (np.sum(molline, axis=0) / float(self.time_adquisitionEdit.text()))   #- roisize
             valory = (np.sum(molline, axis=1) / float(self.time_adquisitionEdit.text()))  #- roisize
+
+            if self.isclear:
+                self.p2.clear()
+                self.curve = self.p2.plot(open='y')
+                self.curvey = self.p2.plot(open='y')
+                self.primera = False
+                self.isclear = False
 
             self.curve.setData(valor,  
                                 pen=pg.mkPen(color='b', width=2),
@@ -1195,50 +1203,67 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         the function connected (automatic_crazy). 
         It stop when timer.spot is called (automatic_crazy function)"""
         self.timing = 0
-        self.automatic_webertimer.start(50)  # imput in ms
+        
+        self.moleculeSizeEdit.setText(str(int(int(self.moleculeSizeEdit.text())-1)))
+        self.update_size_rois()
         self.weber_vector = np.zeros((int(self.weberRoiStepEdit.text()), len(self.molRoi)-len(self.removerois)))
+
+        self.automatic_webertimer.start(50)  # imput in ms
 #        self.weber_vector_error = []
-        print("number of Rois to check :", int(self.weberRoiStepEdit.text()))
+#        print("number of Rois to check :", int(self.weberRoiStepEdit.text()))
 
     def automatic_weber(self):  # from the timer of automatic_weber_start
         """ to find the best rois size based on the weber contrasts. It scan
         up to N diferent sizes, where N can be an imput."""
 #        self.weber_vector[self.timing] = []
-        print("start automatic weber")
+#        print("start automatic weber")
         self.calculate_images()
-        print("Calculate images finish")
+#        print("Calculate images finish")
 #        self.weber_vector[self.timing].append(self.weber)
         self.weber_vector[self.timing,:] = self.weber
-        print("Weber vector growing")
+#        print("Weber vector growing")
 
 #        self.plot_weber()  # If I have time later I do the plot in another window
         roiSize = int(self.moleculeSizeEdit.text())
-        print(roiSize, "roisize before")
+        print(roiSize, "roisize")
         self.moleculeSizeEdit.setText(str(int(roiSize+1)))
-        print(int(self.moleculeSizeEdit.text()), "roisize after")
+#        print(int(self.moleculeSizeEdit.text()), "roisize after")
         self.update_size_rois()
-        print(int(self.moleculeSizeEdit.text()), "Updato ro size just in case")
+#        print(int(self.moleculeSizeEdit.text()), "Updato ro size just in case")
 
 
         self.timing +=1
         if self.timing == int(self.weberRoiStepEdit.text()):
             self.automatic_webertimer.stop()
             print(" automatic analysis finished", len(self.weber_vector))
-            print("WEBER vector", self.weber_vector)
+#            print("WEBER vector", self.weber_vector)
 #            plt.plot(self.weber_vector)
             self.plot_weber()
 
     def plot_weber(self):
         alsteps = int(self.weberRoiStepEdit.text())
         valorx =  (np.linspace(1, alsteps, alsteps)+int(self.moleculeSizeEdit.text())-alsteps)
-        self.curve.clear()  # setData(valor,
-#                            pen=pg.mkPen(color='b', width=2),
-#                            shadowPen=pg.mkPen('w', width=3))
-        self.p2.removeItem(self.frame_line)
-        print("plot weber curve")
+
+#        self.curve.clear()
+#        self.curvey.clear()
+#        self.p2.removeItem(self.frame_line)
+        self.p2.clear()
+        self.isclear = True
+
+#        print("plot weber curve")
+        colors = ['m', 'b', 'y', 'r']
         for i in range(len(self.molRoi)-len(self.removerois)):
+            curves = self.p2.plot(open='y')
             valory = self.weber_vector[:,i]
-            self.curvey.setData(valorx, np.transpose(valory))  # ,
+            if i < len(colors):
+                curves.setData(valorx, np.transpose(valory),
+                            pen=pg.mkPen(color=colors[i], width=2),
+                            shadowPen=pg.mkPen('w', width=2))
+            else:
+                curves.setData(valorx, np.transpose(valory),
+                            pen=pg.mkPen(width=2),
+                            shadowPen=pg.mkPen(width=2))
+#            self.curvey.setData(valorx, np.transpose(valory))  # ,
 #                            pen=pg.mkPen(color='m', width=2),
 #                            shadowPen=pg.mkPen('w', width=2))
 
