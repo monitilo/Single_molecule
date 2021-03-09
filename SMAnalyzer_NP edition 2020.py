@@ -588,6 +588,10 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.histo_data = False
         self.is_trace = False
 
+        # Avoiding problems with the UI
+        self.canvas_NP_trace_created = False
+
+
     # Shortcuts
         self.bgfilter_Action = QtGui.QAction(self)
         QtGui.QShortcut(
@@ -1794,19 +1798,62 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         i = int(self.NP_edit_number.text())
         if i < len(self.realnumbers):
-            try:
-    
+
+            self.NProispot = self.molRoi[self.realnumbers[i]].getArrayRegion(self.data,
+                                                    self.imv.imageItem,
+                                                    axes=(1,2),
+                                                    returnMappedCoords=False)
+
+            valor = np.sum(self.NProispot, axis=(1,2))
+
+            if self.canvas_NP_trace_created == False:
+                self.canvas_NP_trace_created = True
+                print("Click again please")
+                self.NP_p2 = self.NP_trace_widget.addPlot(row=2, col=1, title="NP Trace")
+                if self.NPbgcheck.isChecked():
+                    self.NP_p2.setTitle("Normalized Trace")
+
+                self.NP_p2.showGrid(x=True, y=True)
+                self.NP_curve = self.NP_p2.plot(open='y')
+    #            self.frame_line = pg.InfiniteLine(angle=90,
+    #                                          movable=True,
+    #                                          pen=pg.mkPen(color=(60,60,200),
+    #                                          width=2))
+    #            self.NP_p2.addItem(self.frame_line)
+    #            self.frame_line.sigPositionChanged.connect(self.moving_frame)
+
+                starting = int(0)
+                ending = int(self.NProispot.shape[0])
+
+                self.lrmax = pg.LinearRegionItem([starting,(starting+ending)//8], pen='g',
+                                                  bounds=[0, self.NProispot.shape[0]],
+                                                  brush=(5,200,5,25),
+                                                  hoverBrush=(50,200,50,50))
+                self.lrmax.setZValue(10)
+                self.NP_p2.addItem(self.lrmax, ignoreBounds=True)
+
+                self.lrmin = pg.LinearRegionItem([ending - ((starting+ending)//4), ending], pen='r',
+                                                  bounds=[0, self.NProispot.shape[0]],
+                                                  brush=(200,50,50,25),
+                                                  hoverBrush=(200,50,50,50))
+                self.lrmin.setZValue(10)
+                self.NP_p2.addItem(self.lrmin, ignoreBounds=True)
+                self.lrmax.sigRegionChanged.connect(self.NP_leftAVG)
+                self.lrmin.sigRegionChanged.connect(self.NP_rightAVG)
+                self.lrmax.sigRegionChanged.connect(self.NP_stepAVG)
+                self.lrmin.sigRegionChanged.connect(self.NP_stepAVG)
+                self.NP_leftAVG()
+                self.NP_rightAVG()
+                self.NP_stepAVG()
+
+            else:
+                
     #            self.realnumbers = []
     #            for j in np.arange(0, self.fixing_number):
     #                if j not in self.removerois:
     #                    self.realnumbers.append(j)
     #            print("realnumbers", self.realnumbers)
-                self.NProispot = self.molRoi[self.realnumbers[i]].getArrayRegion(self.data,
-                                                        self.imv.imageItem,
-                                                        axes=(1,2),
-                                                        returnMappedCoords=False)
 
-                valor = np.sum(self.NProispot, axis=(1,2))
 
                 if self.NPbgcheck.isChecked():
                     self.NP_p2.setTitle("Normalized Trace")
@@ -1841,48 +1888,11 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 self.NP_stepAVG()
                 self.NP_subtract()
 
-            except:
-                print("Click again please")
-                self.NP_p2 = self.NP_trace_widget.addPlot(row=2, col=1, title="NP Trace")
-                if self.NPbgcheck.isChecked():
-                    self.NP_p2.setTitle("Normalized Trace")
-
-                self.NP_p2.showGrid(x=True, y=True)
-                self.NP_curve = self.NP_p2.plot(open='y')
-    #            self.frame_line = pg.InfiniteLine(angle=90,
-    #                                          movable=True,
-    #                                          pen=pg.mkPen(color=(60,60,200),
-    #                                          width=2))
-    #            self.NP_p2.addItem(self.frame_line)
-    #            self.frame_line.sigPositionChanged.connect(self.moving_frame)
-    
-                starting = int(0)
-                ending = int(self.NProispot.shape[0])
-    
-                self.lrmax = pg.LinearRegionItem([starting,(starting+ending)//8], pen='g',
-                                                  bounds=[0, self.NProispot.shape[0]],
-                                                  brush=(5,200,5,25),
-                                                  hoverBrush=(50,200,50,50))
-                self.lrmax.setZValue(10)
-                self.NP_p2.addItem(self.lrmax, ignoreBounds=True)
-    
-                self.lrmin = pg.LinearRegionItem([ending - ((starting+ending)//4), ending], pen='r',
-                                                  bounds=[0, self.NProispot.shape[0]],
-                                                  brush=(200,50,50,25),
-                                                  hoverBrush=(200,50,50,50))
-                self.lrmin.setZValue(10)
-                self.NP_p2.addItem(self.lrmin, ignoreBounds=True)
-                self.lrmax.sigRegionChanged.connect(self.NP_leftAVG)
-                self.lrmin.sigRegionChanged.connect(self.NP_rightAVG)
-                self.lrmax.sigRegionChanged.connect(self.NP_stepAVG)
-                self.lrmin.sigRegionChanged.connect(self.NP_stepAVG)
-                self.NP_leftAVG()
-                self.NP_rightAVG()
-                self.NP_stepAVG()
 
 
         else:
             print("Wrong number")
+
     def NP_save_folder_select(self):
         """ Save the final image, Or all of them. or the tiff data. Do not know."""
         # Remove annoying empty window

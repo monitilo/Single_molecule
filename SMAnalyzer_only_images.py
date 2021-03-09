@@ -1089,7 +1089,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 #        s = (2*int(self.BgSizeEdit.text()))  # bgsize = molsize + s
         p=0
         for i in range(len(self.molRoi)):  # np.arange(0, self.maxnumber):
-            if i not in self.removerois:             
+            if i not in self.removerois:
                 # get molecule array
                 molArray[i] = self.molRoi[i].getArrayRegion(self.image_data, self.imv.imageItem) /float(self.time_adquisitionEdit.text())
 
