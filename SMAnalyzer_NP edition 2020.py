@@ -265,6 +265,12 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.edit_dir_save.setToolTip('Selec the folder where save the data')
 
 
+        self.btn_save_coordinates = QtGui.QPushButton('SAVE spots coordinates (in progress)')
+        self.btn_save_coordinates.clicked.connect(self.save_coordinates)
+
+        self.btn_load_coordinates = QtGui.QPushButton('LOAD spots coordinates (in progress)')
+        self.btn_load_coordinates.clicked.connect(self.load_coordinates)
+
 # NP_wid_grid Buttons
 
         self.btn_NP_analyse = QtGui.QPushButton('Np analysis')
@@ -399,6 +405,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.options_grid.addWidget(self.btn99_clearall,    14, 2, 1, 1)
         self.options_grid.addWidget(self.btn7,              15, 0, 1, 3)
 
+        self.options_grid.addWidget(self.btn_save_coordinates,  16, 0, 1, 1)
+        self.options_grid.addWidget(self.btn_load_coordinates,  16, 2, 1, 1)
 
         self.viewer_grid.addWidget(self.label_save,          0, 4, 1, 5)
         self.viewer_grid.addWidget(self.edit_save,          0, 9, 1, 10)
@@ -1490,6 +1498,104 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         self.morgane = np.array(morgane)
 
+    def save_coordinates(self):
+        """to keep al the points already picked in case we want to load 
+        them later"""
+
+        print("Saving coordinates")
+
+        # Create dict with spots
+        coordinates = dict()
+#        s = (2*int(self.BgSizeEdit.text()))  # bgsize = molsize + s
+        p = 0
+        for i in range(len(self.molRoi)):  # np.arange(0, self.maxnumber):
+            if i not in self.removerois:
+
+                coordinates[p] = (self.molRoi[i].pos()[0], self.molRoi[i].pos()[1])
+                print(coordinates[p])
+                print(p)
+                p +=1 # I have to use this to have order because of removerois
+        a = []
+        p = 0
+        for p in range(len(coordinates)):
+            a.append(coordinates[p])
+
+        print(a, "a")
+
+#        b = np.array(a).T
+#        print("len spots", len(b))
+
+#        print(b)
+        b=np.array(a)
+        self.coordinates = b
+#        print(b)
+        print(self.coordinates.shape,"shape")
+
+
+        N = 1
+        number = ""
+        self.custom_name  = str(self.edit_dir_save.text()) +"/"+ str(self.edit_save.text()) + "_"
+        coordinates_name = self.custom_name  + 'Coordinates'+ str(p-1)+ number +'.txt'
+        while os.path.isfile(coordinates_name):
+#                print(trace_name)
+            number = "("+ str(N) +")"
+            coordinates_name = self.custom_name  + 'Coordinates-'+ str(p-1)+ number +'.txt'
+#                print(trace_name)
+            N += 1
+        np.savetxt(coordinates_name, self.coordinates, delimiter="    ", newline='\r\n')
+        self.save_coordinates_name = coordinates_name
+        print("\n", p-1,"Coordinates saves as", coordinates_name)
+
+
+
+    def load_coordinates (self):
+        print("load coordinates")
+        
+        coordinates_name = self.save_coordinates_name
+        load = np.loadtxt(coordinates_name)
+        print(load, load.shape)
+        for j in range(len(load)):
+            print(j, load[j])
+        p = 0
+#        for i in range(len(self.molRoi)):  # np.arange(0, self.maxnumber):
+#            if i not in self.removerois:
+#                print(i,p)
+#                print(self.molRoi[i].pos())
+#                print(load[p])
+#                self.molRoi[i].setPos(load[p]*2)
+#                p+=1
+
+# ----- real loading
+        print("creating rois")
+        for i in range(len(load)):
+
+            # Translates molRoi to particle center
+            center = int(self.BgSizeEdit.text()) * np.array([1, 1])
+#            corrMaxima = np.flip(self.maximacoord[maxindex[p]], 0) - 0.5*np.array(self.roiSize) + [0.5, 0.5]
+            corrMaxima = load[i]
+            self.molRoi[i] = pg.ROI(corrMaxima, self.roiSize,scaleSnap=True,
+                           translateSnap=True, movable=False, removable=True)
+            self.bgRoi[i] = pg.ROI((corrMaxima - center), self.bgroiSize,
+                                          scaleSnap=True, translateSnap=True,
+                                          movable=False, removable=True)
+            self.imv.view.addItem(self.molRoi[i])
+            self.imv.view.addItem(self.bgRoi[i])
+
+            self.molRoi[i].sigRemoveRequested.connect(self.remove_ROI)
+            self.bgRoi[i].sigRemoveRequested.connect(self.remove_ROI)
+
+            # Create ROI label
+            self.label[i] = pg.TextItem(text=str(i))
+            self.label[i].setPos(self.molRoi[i].pos())
+            if self.see_labels_button.isChecked():
+                self.imv.view.addItem(self.label[i])
+            p+=1
+        try:
+            self.fixing_number = i + 1
+        except:
+            print("ZERO points finded. ZERO!!")
+        self.relabel_new_ROI()
+
     def export(self, what):  # after analysis, you want to save the data
         """ to save the data.
         Makes a diference betweeen the video part (traces)
@@ -1645,7 +1751,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.lrmax.setZValue(10)
         leftminX, leftmaxX = self.lrmax.getRegion()
 #        self.avgmax = np.nanmean(self.NProispot[int(minX):int(maxX), (int(self.traceSlider.value()))])
-        self.avgmax = np.mean(self.NProispot[int(leftminX):int(leftmaxX),:,:])
+        self.avgmax = np.sum(self.NProispot[int(leftminX):int(leftmaxX),:,:])/(abs(int(leftminX)-int(leftmaxX))*float(self.time_adquisitionEdit.text()))
         self.NP_label_leftavg.setText("<span style='font-size: 12pt'> <span style='color: green'>LeftMean=%0.1f</span>" % (self.avgmax))
 
         self.leftNPimage = self.molRoi[self.realnumbers[i]].getArrayRegion(np.mean(
@@ -1687,7 +1793,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         i = int(self.NP_edit_number.text())
         self.lrmin.setZValue(10)
         rightminX, rightmaxX = self.lrmin.getRegion()
-        self.avgmin = np.mean(self.NProispot[int(rightminX):int(rightmaxX),:,:])
+        self.avgmin = np.sum(self.NProispot[int(rightminX):int(rightmaxX),:,:])/(abs(int(rightminX)-int(rightmaxX))*float(self.time_adquisitionEdit.text()))
 
         self.NP_label_rightavg.setText("<span style='font-size: 12pt'> <span style='color: red'>RigthMean=%0.1f</span>" % (self.avgmin))
 
