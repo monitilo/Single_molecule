@@ -632,16 +632,19 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         """Select a file to analyse, can be a tif or jpg(on progres)
         the tiff data comes in a shape=(Frames, x, y) """
 
+
+
         self.JPG = False
         # Remove annoying empty window
         root = Tk()
         root.withdraw()
 
         # Select image from file
-        self.f = filedialog.askopenfilename(filetypes=[("All", '*.tiff;*.tif;*.jpg'),
+        self.f = filedialog.askopenfilename(filetypes=[("All", '*.tiff;*.tif;*.jpg;*.fits'),
                                                        ("Videos", '*.tiff;*.tif'),
                                                        ("Pictures", "*.jpg"),
-                                                       ("RAW", "*.dng")])
+                                                       ("RAW", "*.dng"),
+                                                       ("FITS", "*.fits")])
 
         if not self.f:
             print("You choosed nothing")
@@ -650,6 +653,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             print("Choosed path: \n", self.file_path, "\n")
 #            self.edit_save.setText(self.file_path[:-4])
             file_name = os.path.split(self.file_path)[1][:-4]
+            print(self.f)
+            print(str(self.f[-5:]))
 
             if self.f[-4:] == ".jpg":  # in case I want one picture
 
@@ -682,8 +687,24 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 self.maxThreshEdit.setText(str(np.mean(self.data[:,:])))
                 self.mean = self.data
 
-                
+            elif self.f[-5:] == ".fits":
+
+                import matplotlib.pyplot as plt
+                from astropy.io import fits
+
+                print("entro en el elif correcto")
+                image_file = self.f
+                image_data = fits.getdata(image_file)
+                print(type(image_data))
+                print(image_data.shape)
+
+                self.data = image_data
+                self.axes = (1,2)  # axe 0 are the frames
+                self.total_size = [self.data.shape[2], self.data.shape[1]]
+                self.maxThreshEdit.setText(str(np.mean(self.data[1,:,:]))[:7])
+
             else:
+                print("No esta en el fits")
                 # Import selected image
                 self.data = io.imread(self.f)
                 self.axes = (1,2)  # axe 0 are the frames
