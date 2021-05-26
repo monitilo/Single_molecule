@@ -839,7 +839,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         If you have rois in the mean image, they are moved with translatemaxima
         to the good positions in the origianl image. So you can follow them"""
 
-        self.is_trace = False
+#        self.is_trace = False
 
         plot_with_colorbar(self.imv, self.data)
 
