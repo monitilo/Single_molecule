@@ -327,6 +327,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 #        self.layout = QtGui.QGridLayout()
 #        self.w.setLayout(self.layout)
 
+        self.Nicole_smooth_save_tic = QtGui.QCheckBox('Smooth for nicole to click')
+        self.Nicole_smooth_save_tic.setChecked(False)
+
         self.viewer_grid = QtGui.QGridLayout()
         self.viewer_wid = QtGui.QWidget()
         self.viewer_wid.setLayout(self.viewer_grid)
@@ -407,6 +410,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         self.options_grid.addWidget(self.btn_save_coordinates,  16, 0, 1, 1)
         self.options_grid.addWidget(self.btn_load_coordinates,  16, 2, 1, 1)
+
+        self.options_grid.addWidget(self.Nicole_smooth_save_tic,  17, 0, 1, 1)
 
         self.viewer_grid.addWidget(self.label_save,          0, 4, 1, 5)
         self.viewer_grid.addWidget(self.edit_save,          0, 9, 1, 10)
@@ -1413,6 +1418,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         bg = dict()
         bgNorm = dict()
         self.raw_data = dict()
+        self.smooth_trace = dict()
+        self.smooth_trace_bg = dict()
 
 #        s = (2*int(self.BgSizeEdit.text()))  # bgsize = molsize + s
         p=0
@@ -1442,12 +1449,18 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 self.trace[p] = (np.sum(molArray[i], axis=self.axes) - bgNorm[i]) / float(self.time_adquisitionEdit.text())
                 self.trace_bg[p] = bgNorm[i] / float(self.time_adquisitionEdit.text())
                 self.raw_data[p] = np.sum(molArray[i], axis=(1,2)) / float(self.time_adquisitionEdit.text())
+
+                if self.Nicole_smooth_save_tic.isChecked():
+                    self.smooth_trace[p] = savitzky_golay(self.raw_data[p], 5, 3)  # window size 5, polynomial order 3
+                    self.smooth_trace_bg[p] = savitzky_golay(self.trace_bg[p], 5, 3)  # window size 5, polynomial order 3
+
                 p +=1 # I have to use this to have order because of removerois
 
         # Save traces as an array
         a = []
         a_bg = []
         a_raw = []
+
         for p in range(len(self.trace)):
             a.append(self.trace[p])
             a_bg.append(self.trace_bg[p])
@@ -1460,6 +1473,20 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.traces = b
         self.traces_bg = c
         self.traces_raw = d
+
+        if self.Nicole_smooth_save_tic.isChecked():
+            a_smooth = []
+            a_smooth_bg = []
+            for p in range(len(self.trace)):
+                a_smooth.append(self.smooth_trace[p])
+                a_smooth_bg.append(self.smooth_trace_bg[p])
+
+            e = np.array(a_smooth).T
+            f = np.array(a_smooth_bg).T
+            self.smooth_traces = e
+            self.smooth_traces_bg = f
+
+
 
     def calculate_images(self):# from exportTraces_or_images (<- btn7 call it)
         """ calculate the traces to save.
@@ -1656,7 +1683,6 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 trace_bg_name = self.custom_name  + 'traces_background-'+ str(c.shape[1]) + number +'.txt'
 #                print(trace_bg_name)
                 N += 1
-
             np.savetxt(trace_bg_name, c, delimiter="    ", newline='\r\n')
             print("\n", c.shape[1],"Traces exported as", trace_bg_name)
 
@@ -1685,8 +1711,47 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 N += 1
             exporter.export(png_name)
             print( "\n Picture exported as", png_name)
+            
+            #Smooth version for Nicole
 
+            try:
+                if self.Nicole_smooth_save_tic.isChecked():
 
+                    e = self.smooth_traces #savitzky_golay(d, 5, 3)  # Smooth of Traces_Raw
+                    f = self.smooth_traces_bg #savitzky_golay(c, 5, 3)  # Smooth of traces_bg; window size 5, polynomial order 3
+                    
+                    smooth_trace_name = self.custom_name  + 'SMOOTH_traces-'+ str(e.shape[1])+ number +'.txt'
+                    while os.path.isfile(smooth_trace_name):
+        #                print(smooth_trace_name)
+                        number = "("+ str(N) +")"
+                        smooth_trace_name = self.custom_name  + 'SMOOTH_traces-'+ str(e.shape[1])+ number +'.txt'
+        #                print(smooth_trace_name)
+                        N += 1
+                    np.savetxt(smooth_trace_name, e, delimiter="    ", newline='\r\n')
+                    print("\n", e.shape[1],"Traces exported as", smooth_trace_name)
+        
+                    smooth_trace_bg_name = self.custom_name  + 'SMOOTH_background-'+ str(f.shape[1]) + number +'.txt'
+                    while os.path.isfile(smooth_trace_bg_name):
+        #                print(smooth_trace_bg_name)
+                        number = "("+ str(N) +")"
+                        smooth_trace_bg_name = self.custom_name + 'SMOOTH_background-'+ str(f.shape[1]) + number +'.txt'
+        #                print(smooth_trace_bg_name)
+                        N += 1
+                    np.savetxt(smooth_trace_bg_name, f, delimiter="    ", newline='\r\n')
+                    print("\n", f.shape[1],"Traces exported as", smooth_trace_bg_name)
+        
+                    trace_Nicole = e - f
+                    trace_Nicole_name = self.custom_name  + 'NICOLE_traces-'+ str(trace_Nicole.shape[1]) + number +'.txt'
+                    while os.path.isfile(trace_Nicole_name):
+        #                print(trace_Nicole_name)
+                        number = "("+ str(N) +")"
+                        trace_Nicole_name = self.custom_name  + 'NICOLE_traces-'+ str(trace_Nicole.shape[1]) + number +'.txt'
+        #                print(trace_Nicole_name)
+                        N += 1
+                    np.savetxt(trace_Nicole_name, trace_Nicole, delimiter="    ", newline='\r\n')
+                    print("\n", trace_Nicole.shape[1],"Traces exported as", trace_Nicole_name)
+            except IOError as e:
+                print("I/O error({0}): {1}".format(e.errno, e.strerror))
 
         if what == "images":
             header = "Counts in Roi"+"    "+"Background (normalize by roisize)"+"    "+"Wever contrast"
@@ -2443,6 +2508,81 @@ def fitgaussian(data):
                                        data)
     p, success = optimize.leastsq(errorfunction, params)
     return p
+
+
+def savitzky_golay(y, window_size, order, deriv=0, rate=1):
+    r"""Smooth (and optionally differentiate) data with a Savitzky-Golay filter.
+    The Savitzky-Golay filter removes high frequency noise from data.
+    It has the advantage of preserving the original shape and
+    features of the signal better than other types of filtering
+    approaches, such as moving averages techniques.
+    Parameters
+    ----------
+    y : array_like, shape (N,)
+        the values of the time history of the signal.
+    window_size : int
+        the length of the window. Must be an odd integer number.
+    order : int
+        the order of the polynomial used in the filtering.
+        Must be less then `window_size` - 1.
+    deriv: int
+        the order of the derivative to compute (default = 0 means only smoothing)
+    Returns
+    -------
+    ys : ndarray, shape (N)
+        the smoothed signal (or it's n-th derivative).
+    Notes
+    -----
+    The Savitzky-Golay is a type of low-pass filter, particularly
+    suited for smoothing noisy data. The main idea behind this
+    approach is to make for each point a least-square fit with a
+    polynomial of high order over a odd-sized window centered at
+    the point.
+    Examples
+    --------
+    t = np.linspace(-4, 4, 500)
+    y = np.exp( -t**2 ) + np.random.normal(0, 0.05, t.shape)
+    ysg = savitzky_golay(y, window_size=31, order=4)
+    import matplotlib.pyplot as plt
+    plt.plot(t, y, label='Noisy signal')
+    plt.plot(t, np.exp(-t**2), 'k', lw=1.5, label='Original signal')
+    plt.plot(t, ysg, 'r', label='Filtered signal')
+    plt.legend()
+    plt.show()
+    References
+    ----------
+    .. [1] A. Savitzky, M. J. E. Golay, Smoothing and Differentiation of
+       Data by Simplified Least Squares Procedures. Analytical
+       Chemistry, 1964, 36 (8), pp 1627-1639.
+    .. [2] Numerical Recipes 3rd Edition: The Art of Scientific Computing
+       W.H. Press, S.A. Teukolsky, W.T. Vetterling, B.P. Flannery
+       Cambridge University Press ISBN-13: 9780521880688
+    """
+
+    import numpy as np
+    from math import factorial
+
+    try:
+        window_size = np.abs(np.int(window_size))
+        order = np.abs(np.int(order))
+    except ValueError:  # , msg:
+        raise ValueError("window_size and order have to be of type int")
+    if window_size % 2 != 1 or window_size < 1:
+        raise TypeError("window_size size must be a positive odd number")
+    if window_size < order + 2:
+        raise TypeError("window_size is too small for the polynomials order")
+    order_range = range(order+1)
+    half_window = (window_size -1) // 2
+    # precompute coefficients
+    b = np.mat([[k**i for i in order_range] for k in range(-half_window, half_window+1)])
+    m = np.linalg.pinv(b).A[deriv] * rate**deriv * factorial(deriv)
+    # pad the signal at the extremes with
+    # values taken from the signal itself
+    firstvals = y[0] - np.abs( y[1:half_window+1][::-1] - y[0] )
+    lastvals = y[-1] + np.abs(y[-half_window-1:-1][::-1] - y[-1])
+    y = np.concatenate((firstvals, y, lastvals))
+    return np.convolve( m[::-1], y, mode='valid')
+
 
 # %% functions to meka the life easier
 
