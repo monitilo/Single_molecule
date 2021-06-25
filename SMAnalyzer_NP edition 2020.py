@@ -205,6 +205,9 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 "QPushButton { background-color: rgb(202,0,202); }")
 
         self.btn_filter_bg = QtGui.QPushButton('Filter bg (ctrl+b)')
+        self.filter_bg_edit = QtGui.QLineEdit('inf')
+        self.filter_bg_edit.setFixedWidth(60)
+
 
         self.btn_nospot_filter = QtGui.QPushButton('filter no spot (ctrl+n)')
         self.btn_nospot_filter.setStyleSheet(
@@ -465,7 +468,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         self.post_grid.addWidget(self.gauss_fit_label,     5, 25, 1, 1)
         self.post_grid.addWidget(self.gauss_fit_edit,      5, 26, 1, 1)
         self.post_grid.addWidget(self.btn_gauss_fit,       6, 25, 1, 2)
-        self.post_grid.addWidget(self.btn_filter_bg,       8, 25, 1, 2)
+        self.post_grid.addWidget(self.btn_filter_bg,       8, 25, 1, 1)
+        self.post_grid.addWidget(self.filter_bg_edit,      8, 26, 1, 1)
         self.post_grid.addWidget(self.btn_nospot_filter,   10, 25, 1, 2)
         self.post_grid.addWidget(self.btn_histogram,      12, 25, 1, 2)
         self.post_grid.addWidget(self.btn_save_histogram, 13, 25, 1, 1)
@@ -690,6 +694,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 #                self.maxDistEdit.setText("60")
 #                self.moleculeSizeEdit.setText("90")
                 self.maxThreshEdit.setText(str(np.mean(self.data[:,:])))
+
+                
                 self.mean = self.data
 
             elif self.f[-5:] == ".fits":
@@ -719,6 +725,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 #                self.moleculeSizeEdit.setText("9")
                 self.maxThreshEdit.setText(str(np.mean(self.data[1,:,:]))[:7])
 
+            self.filter_bg_edit.setText(str(np.max(self.data[:,:])))
 
             self.edit_save.setText(file_name)
 #            completename = str(self.NP_edit_dir_save.text()) +"/"+ str(self.edit_save.text())
@@ -884,8 +891,10 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
 #        self.clear_all()
         self.dist = int(self.maxDistEdit.text())
-        self.threshold = float(self.maxThreshEdit.text())
+        low_threshold = float(self.maxThreshEdit.text())
+        max_threshold = float(self.filter_bg_edit.text())
         
+
         # set roi Dimension array
         self.roiSize = [int(self.moleculeSizeEdit.text())] * 2
         self.bgroiSize = np.array(self.roiSize) + 2* int(self.BgSizeEdit.text())  # s pixel each side
@@ -906,34 +915,52 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 print("in a cuted ROI (no trace or jpg)")
 
         # find the local peaks
-        self.maximacoord = peak_local_max(self.mean, min_distance=self.dist, threshold_abs=self.threshold)
+        self.maximacoord = peak_local_max(self.mean, min_distance=self.dist, threshold_abs=low_threshold)
 
         maxvalues = []
         for i in range(len(self.maximacoord[:,0])):
             maxvalues.append(self.mean[self.maximacoord[i,0], self.maximacoord[i,1]])
 
+#        print("maxvalues", maxvalues)
         # filter spurious peaks taking only the brighters ones
         nomaxlow = np.where(np.array(maxvalues) < np.mean(maxvalues))[0]
         print("len maxvalues", len(maxvalues))
-        print("nomaxlow", len(nomaxlow))
-        
+#        print("nomaxlow", len(nomaxlow))
+
         aux = np.arange(len(maxvalues))
-        goodmax = np.delete(aux,nomaxlow)
+#        goodmax = np.delete(aux,nomaxlow)
 
         # Can do the same for the very brighter spots, but don't wanna
 #        nomaxhigh = np.where(np.array(maxvalues) > 1.5*np.mean(np.array(maxvalues)[goodmax]))
-#        toerase = np.sort(np.append(nomaxlow, nomaxhigh))
 
-        maxindex = goodmax  # np.delete(aux,toerase)   NOT Nice for now
+        nomaxhigh = np.where(np.array(maxvalues) > max_threshold)[0]
+        toerase = np.sort(np.append(nomaxlow, nomaxhigh))
+        print("nomaxhigh", len(nomaxhigh))
 
-        print(len(goodmax), "good points finded")
+#        maxindex = goodmax  #   Trying
+        maxindex = np.delete(aux, toerase)
+#        maxindex = np.delete(aux, nomaxhigh)
+
+
+#        print(len(goodmax), "good points finded")
+#        print(len(toerase), "total points to delete")
+        
+        print(len(maxindex), "after upper threshold")
 
         self.maxnumber = np.size(self.maximacoord[maxindex], 0)
+        print(self.maxnumber, self.maximacoord[maxindex])
 
-        p = 0  
+        p = 0
+        try:
+            del i
+        except:
+            pass
+
         print(self.fixing_number, "old points added")
         # I move my start because of the fixing number, so need to use p=0
+
         for i in np.arange(0, self.maxnumber)+self.fixing_number:
+#            print("i", i)
 
             # Translates molRoi to particle center
             corrMaxima = np.flip(self.maximacoord[maxindex[p]], 0) - 0.5*np.array(self.roiSize) + [0.5, 0.5]
@@ -955,9 +982,11 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 self.imv.view.addItem(self.label[i])
             p+=1
         try:
+
             self.fixing_number = i + 1
         except:
             print("ZERO points finded. ZERO!!")
+        print(self.fixing_number, "FIXING NUMBER")
         self.relabel_new_ROI()
 
         if self.is_trace:
@@ -966,7 +995,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         elif not self.is_image:
             self.btn7.setText("Intensities from frame={}".format(int(self.meanStartEdit.text())))
 
-
+        
 
     def update_size_rois(self):
         roiSize = (int(self.moleculeSizeEdit.text()))
@@ -1203,7 +1232,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 self.realnumbers.append(i)
                 self.label[i].setText(text=str(p), color='g')
                 p+=1
-        print("realnumbers", self.realnumbers)
+#        print("realnumbers", self.realnumbers)
 
     def see_labels_shortcut(self):
         if self.see_labels_button.isChecked():
@@ -1236,13 +1265,15 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         and then do not use them from the total molRoi list
         It check means in the columns and files of the bg Roi"""
 
+
+
         bgArray = dict()
         a = 0
         bgsize = int(self.BgSizeEdit.text())
         for i in range(len(self.molRoi)): #np.arange(0, self.maxnumber):
             if i not in self.removerois:
                 # get background plus molecule array
-                bgArray[i] = self.bgRoi[i].getArrayRegion(self.mean, self.imv.imageItem)                
+                bgArray[i] = self.bgRoi[i].getArrayRegion(self.mean, self.imv.imageItem)
                 b = True
                 for l in np.arange(-bgsize,bgsize):
                     if b:
@@ -1252,7 +1283,6 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                             self.bgRoi[i].setPen('r')
                             self.removerois.append(i)
                             a+=1
-
 
         print("filter bg: bad/total=", a,"/", len(self.molRoi))
 
