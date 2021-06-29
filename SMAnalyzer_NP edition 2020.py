@@ -75,7 +75,7 @@ import sys
 
 from PIL import Image  # to save tiff images
 
-import pyautogui  # to make screenshots
+#import pyautogui  # to make screenshots
 
 import numpy as np
 from pyqtgraph.Qt import QtCore, QtGui
@@ -332,6 +332,8 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         self.Nicole_smooth_save_tic = QtGui.QCheckBox('Smooth for nicole to click')
         self.Nicole_smooth_save_tic.setChecked(False)
+
+
 
         self.viewer_grid = QtGui.QGridLayout()
         self.viewer_wid = QtGui.QWidget()
