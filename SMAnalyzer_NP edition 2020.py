@@ -75,7 +75,7 @@ import sys
 
 from PIL import Image  # to save tiff images
 
-#import pyautogui  # to make screenshots
+import pyautogui  # to make screenshots
 
 import numpy as np
 from pyqtgraph.Qt import QtCore, QtGui
@@ -2227,7 +2227,7 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
             N += 1
 
         data = self.NPsubimage
-        result = Image.fromarray(data.astype('uint16'))
+        result = Image.fromarray(data)
         result.save(r'{}.tiff'.format(final_name))
 
         print( "\n NP image save as", r'{}.tiff'.format(final_name))
@@ -2252,10 +2252,13 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
 
         dataright = self.rightNPimage
         dataleft = self.leftNPimage
-        result = Image.fromarray(dataright.astype('uint16'))
-        result = Image.fromarray(dataleft.astype('uint16'))
-        result.save(r'{}.tiff'.format(final_name_left))
-        result.save(r'{}.tiff'.format(final_name_right))
+
+        resultright = Image.fromarray(dataright)
+        resultright.save(r'{}.tiff'.format(final_name_right))
+
+        resultleft = Image.fromarray(dataleft)  # .astype('uint16'
+        resultleft.save(r'{}.tiff'.format(final_name_left))
+
 
         print( "\n Left & right saved", r'{}.tiff'.format(final_name_left))
 
