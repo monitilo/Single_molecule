@@ -444,9 +444,10 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
         root.withdraw()
 
         # Select image from file
-        self.f = filedialog.askopenfilename(filetypes=[("All", '*.tiff;*.tif;*.jpg;*.bmp'),
+        self.f = filedialog.askopenfilename(filetypes=[("All", '*.tiff;*.tif;*.jpg;*.bmp;*.txt'),
                                                        ("Videos", '*.tiff;*.tif'),
-                                                       ("Pictures", "*.jpg")])
+                                                       ("Pictures", "*.jpg"),
+                                                       ("Labview", "*.txt")])
 
         if not self.f:
             print("You choosed nothing")
@@ -460,8 +461,13 @@ class smAnalyzer(pg.Qt.QtGui.QMainWindow):
                 self.data = io.imread(self.f)[:, :, self.channel]
                 self.edit_save.setText(self.file_name +"_"+ channels[self.channel])
             except:
-                print("1D picture")
-                self.data = io.imread(self.f)
+                if self.f[-4:] == ".txt":  # For labview case
+                    print("txt image from labview")
+                    self.data = np.loadtxt(self.f)
+                    
+                else:
+                    print("1D picture")
+                    self.data = io.imread(self.f)
                 self.edit_save.setText(self.file_name)
 
             self.total_size = [self.data.shape[1], self.data.shape[0]]
